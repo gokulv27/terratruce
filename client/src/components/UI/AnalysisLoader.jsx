@@ -1,28 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Activity, Shield, TrendingUp, Search, Globe } from 'lucide-react';
+import { Loader2, Activity, Shield, TrendingUp, Search, Globe, FileText, Database } from 'lucide-react';
 
 const loadingSteps = [
-    { text: "Establishing satellite connection...", icon: Globe },
-    { text: "Scanning regional data sources...", icon: Search },
-    { text: "Analyzing crime and safety reports...", icon: Shield },
-    { text: "Computing market trends (2019-2024)...", icon: TrendingUp },
-    { text: "Finalizing risk assessment metrics...", icon: Activity }
+    { text: "Establishing secure connection...", icon: Globe, threshold: 0 },
+    { text: "Scanning regional databases...", icon: Database, threshold: 20 },
+    { text: "Analyzing crime & safety records...", icon: Shield, threshold: 40 },
+    { text: "Processing market trends (2019-2024)...", icon: TrendingUp, threshold: 60 },
+    { text: "Finalizing 10-point risk report...", icon: FileText, threshold: 80 }
 ];
 
 const AnalysisLoader = () => {
-    const [currentStep, setCurrentStep] = useState(0);
+    const [progress, setProgress] = useState(0);
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
     useEffect(() => {
-        // Reduced interval to 800ms to feel more responsive/accurate to "wait time"
+        // Smart progress simulation
         const interval = setInterval(() => {
-            setCurrentStep((prev) => (prev < loadingSteps.length - 1 ? prev + 1 : prev));
-        }, 800);
+            setProgress(prev => {
+                let increment = 0;
+                // Fast start
+                if (prev < 30) {
+                    increment = Math.random() * 2 + 1;
+                }
+                // Steady middle
+                else if (prev < 70) {
+                    increment = Math.random() * 0.5 + 0.2;
+                }
+                // Slow crawl at the end (Zeno's paradox)
+                else if (prev < 95) {
+                    increment = Math.random() * 0.1;
+                }
+                // Stop at 95%
+                else {
+                    return prev;
+                }
+
+                return Math.min(prev + increment, 95);
+            });
+        }, 100);
 
         return () => clearInterval(interval);
     }, []);
 
-    const StepIcon = loadingSteps[currentStep].icon;
+    // Update text based on progress thresholds
+    useEffect(() => {
+        const stepIndex = loadingSteps.findIndex((step, idx) => {
+            const nextStep = loadingSteps[idx + 1];
+            return progress >= step.threshold && (!nextStep || progress < nextStep.threshold);
+        });
+        if (stepIndex !== -1) setCurrentStepIndex(stepIndex);
+    }, [progress]);
+
+    const currentStep = loadingSteps[currentStepIndex];
+    const StepIcon = currentStep.icon;
 
     return (
         <div className="flex flex-col items-center justify-center p-8 min-h-[400px]">
@@ -30,12 +61,12 @@ const AnalysisLoader = () => {
                 {/* Spinning Rings */}
                 <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                     className="absolute inset-0 rounded-full border-4 border-t-brand-primary border-r-transparent border-b-brand-secondary border-l-transparent w-24 h-24"
                 />
                 <motion.div
                     animate={{ rotate: -180 }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                     className="absolute inset-2 rounded-full border-4 border-t-brand-secondary/50 border-r-transparent border-b-brand-primary/50 border-l-transparent w-20 h-20"
                 />
 
@@ -43,10 +74,11 @@ const AnalysisLoader = () => {
                 <div className="w-24 h-24 flex items-center justify-center">
                     <AnimatePresence mode="wait">
                         <motion.div
-                            key={currentStep}
+                            key={currentStepIndex}
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.5, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
                         >
                             <StepIcon className="h-8 w-8 text-brand-primary" />
                         </motion.div>
@@ -59,26 +91,26 @@ const AnalysisLoader = () => {
             <div className="h-6 overflow-hidden relative w-full text-center">
                 <AnimatePresence mode="wait">
                     <motion.p
-                        key={currentStep}
+                        key={currentStepIndex}
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -20, opacity: 0 }}
                         className="text-text-secondary font-medium"
                     >
-                        {loadingSteps[currentStep].text}
+                        {currentStep.text}
                     </motion.p>
                 </AnimatePresence>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-64 h-1 bg-surface-elevated rounded-full mt-8 overflow-hidden">
+            <div className="w-64 h-1.5 bg-surface-elevated rounded-full mt-8 overflow-hidden relative">
                 <motion.div
-                    className="h-full bg-gradient-to-r from-brand-primary to-brand-secondary"
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${((currentStep + 1) / loadingSteps.length) * 100}%` }}
-                    transition={{ duration: 0.5 }}
+                    className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-brand-primary to-brand-secondary shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                    style={{ width: `${progress}%` }}
+                    transition={{ duration: 0.1, ease: "linear" }}
                 />
             </div>
+            <p className="mt-2 text-xs text-text-secondary font-mono">{Math.floor(progress)}%</p>
         </div>
     );
 };

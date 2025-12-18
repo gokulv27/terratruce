@@ -336,33 +336,7 @@ CRITICAL REQUIREMENTS:
 6. Provide specific, actionable insights - not generic information
 7. Output ONLY valid JSON, no markdown code blocks
   `.trim();
-    Act as a real estate risk analyst. 
-    Analyze the location: "${location}".
-    
-    Provide a JSON response ONLY with no markdown formatting. The JSON must have this exact structure:
-    {
-      "overall_score": number (0-100, where 100 is high risk),
-      "buying_risk": "High" | "Medium" | "Low",
-      "renting_risk": "High" | "Medium" | "Low",
-      "flood_risk_score": number (0-100),
-      "crime_score": number (0-100),
-      "air_quality_score": number (0-100),
-      "air_quality_text": "Short description",
-      "solar_potential": "Excellent" | "Good" | "Fair" | "Poor",
-      "weather_summary": "Short annual summary",
-      "transport_score": number (0-100),
-      "amenities_score": number (0-100),
-      "neighbourhood_score": number (0-100),
-      "growth_potential_score": number (0-100),
-      "market_trend": "Up" | "Down" | "Stable",
-      "ai_summary": "1-2 sentence insights",
-      "coordinates": { "lat": number, "lng": number },
-      "news": [{ "headline": "Headline", "summary": "Summary", "date": "Date", "source": "Source" }],
-      "recent_listings": [{ "address": "Address", "price": "₹Price", "type": "Type", "date": "Date", "coordinates": { "lat": number, "lng": number } }],
-      "nearby_hospitals": [{ "name": "Hospital Name", "coordinates": { "lat": number, "lng": number }, "distance": "distance in km" }],
-      "nearby_schools": [{ "name": "School Name", "coordinates": { "lat": number, "lng": number }, "distance": "distance in km" }]
-    }
-  `;
+
 
   try {
     const isProd = import.meta.env.PROD;

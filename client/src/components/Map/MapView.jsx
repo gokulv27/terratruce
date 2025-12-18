@@ -1,142 +1,69 @@
-import React, { useState } from 'react';
-import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import { MapPin, Navigation, Locate } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { darkMapStyle } from '../../styles/mapStyles';
 
-/**
- * Enhanced MapView with Click-to-Select Location
- * Automatically adapts styles based on app theme
- */
 const MapView = ({ location, markers = [], onLocationClick }) => {
+    const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 });
+    const [zoom, setZoom] = useState(13);
     const [clickPosition, setClickPosition] = useState(null);
     const { theme } = useTheme();
 
-    const handleMapClick = (event) => {
-        const lat = event.detail.latLng.lat;
-        const lng = event.detail.latLng.lng;
+    const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-        setClickPosition({ lat, lng });
+    // Sync map center with location prop
+    useEffect(() => {
+        if (location && location.lat && location.lng) {
+            setMapCenter(location);
+            setZoom(14);
+        }
+    }, [location]);
 
-        // Notify parent component
-        if (onLocationClick) {
-            onLocationClick({ lat, lng });
+    const handleMapClick = (e) => {
+        if (e.detail.latLng) {
+            const newPos = { lat: e.detail.latLng.lat, lng: e.detail.latLng.lng };
+            setClickPosition(newPos);
+            // Notify parent if handler provided
+            if (onLocationClick) {
+                onLocationClick(newPos);
+            }
         }
     };
 
-    // Dark Mode Map Styles (Cyberpunk/Night)
-    const darkMapStyles = [
-        { elementType: "geometry", stylers: [{ color: "#1a1a2e" }] },
-        { elementType: "labels.text.stroke", stylers: [{ color: "#0f0f1e" }] },
-        { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-        {
-            featureType: "administrative.locality",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#d59563" }],
-        },
-        {
-            featureType: "poi",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#d59563" }],
-        },
-        {
-            featureType: "poi.park",
-            elementType: "geometry",
-            stylers: [{ color: "#263c3f" }],
-        },
-        {
-            featureType: "poi.park",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#6b9a76" }],
-        },
-        {
-            featureType: "road",
-            elementType: "geometry",
-            stylers: [{ color: "#2a2a4a" }],
-        },
-        {
-            featureType: "road",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#1f1f3a" }],
-        },
-        {
-            featureType: "road",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#9ca5b3" }],
-        },
-        {
-            featureType: "road.highway",
-            elementType: "geometry",
-            stylers: [{ color: "#4a4a6a" }],
-        },
-        {
-            featureType: "road.highway",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#1f1f3a" }],
-        },
-        {
-            featureType: "road.highway",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#f3d19c" }],
-        },
-        {
-            featureType: "transit",
-            elementType: "geometry",
-            stylers: [{ color: "#2f3948" }],
-        },
-        {
-            featureType: "transit.station",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#d59563" }],
-        },
-        {
-            featureType: "water",
-            elementType: "geometry",
-            stylers: [{ color: "#17263c" }],
-        },
-        {
-            featureType: "water",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#515c6d" }],
-        },
-        {
-            featureType: "water",
-            elementType: "labels.text.stroke",
-            stylers: [{ color: "#17263c" }],
-        },
-    ];
-
-    // Light Mode Map Styles (Clean/Standard)
-    const lightMapStyles = [
-        {
-            featureType: "poi.business",
-            stylers: [{ visibility: "off" }],
-        },
-        {
-            featureType: "transit",
-            elementType: "labels.icon",
-            stylers: [{ visibility: "off" }],
-        },
-    ];
+    if (!GOOGLE_MAPS_API_KEY) {
+        return (
+            <div className="w-full h-full bg-surface-elevated flex items-center justify-center rounded-2xl border border-border">
+                <div className="text-center p-6">
+                    <p className="text-red-500 font-bold mb-2">Google Maps API Key Missing</p>
+                    <p className="text-text-secondary text-sm">Please add VITE_GOOGLE_MAPS_API_KEY to your .env file</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-            <div className="w-full h-full relative">
+        <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+            <div className="w-full h-full rounded-2xl overflow-hidden relative group">
                 <Map
-                    defaultCenter={location}
-                    center={location}
-                    defaultZoom={12}
-                    mapId="terra-truce-map"
+                    defaultCenter={mapCenter}
+                    center={mapCenter}
+                    defaultZoom={zoom}
+                    zoom={zoom}
+                    onCameraChanged={(ev) => setZoom(ev.detail.zoom)}
+                    mapId="DEMO_MAP_ID"
                     onClick={handleMapClick}
+                    className="w-full h-full"
                     options={{
-                        styles: theme === 'dark' ? darkMapStyles : lightMapStyles,
-                        disableDefaultUI: false,
+                        disableDefaultUI: true,
                         zoomControl: true,
                         mapTypeControl: false,
                         streetViewControl: false,
-                        fullscreenControl: true,
+                        fullscreenControl: false,
+                        styles: theme === 'dark' ? darkMapStyle : [],
                     }}
                 >
-                    {/* Render markers */}
+                    {/* Render Prop Markers */}
                     {markers.map((marker, index) => (
                         <AdvancedMarker
                             key={index}
@@ -158,12 +85,6 @@ const MapView = ({ location, markers = [], onLocationClick }) => {
                             >
                                 <MapPin className="h-4 w-4 text-white" />
                             </div>
-                        <AdvancedMarker key={index} position={marker.position}>
-                            <Pin
-                                background={marker.color || '#3B82F6'}
-                                borderColor={'#ffffff'}
-                                glyphColor={'#ffffff'}
-                            />
                         </AdvancedMarker>
                     ))}
 
@@ -192,7 +113,7 @@ const MapView = ({ location, markers = [], onLocationClick }) => {
                 </Map>
 
                 {/* Click instruction overlay */}
-                <div className="absolute bottom-4 left-4 bg-surface/90 backdrop-blur-md border border-border rounded-lg px-4 py-2 shadow-lg">
+                <div className="absolute bottom-4 left-4 bg-surface/90 backdrop-blur-md border border-border rounded-lg px-4 py-2 shadow-lg z-10">
                     <p className="text-xs text-text-secondary flex items-center gap-2">
                         <MapPin className="h-3 w-3 text-brand-primary" />
                         Click anywhere on the map to analyze that location
