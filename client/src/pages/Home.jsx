@@ -156,9 +156,7 @@ const Home = () => {
         }
     }, [user]);
 
-    const handleSearchClick = (query) => {
-        navigate('/analyze', { state: { query } });
-    };
+
 
     // Animations
     useGSAP(() => {
@@ -168,7 +166,7 @@ const Home = () => {
     }, { scope: containerRef });
 
     return (
-        <div ref={containerRef} className="bg-background text-text-primary overflow-x-hidden font-sans">
+        <div ref={containerRef} className="h-full overflow-y-auto custom-scrollbar bg-background text-text-primary overflow-x-hidden font-sans">
 
             {/* Hero Section */}
             <div ref={heroRef} className="relative pt-12 pb-12 px-6 lg:px-12 overflow-hidden min-h-screen flex items-center">
