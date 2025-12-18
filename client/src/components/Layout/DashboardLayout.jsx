@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Activity, Globe, Shield, Sun, Moon, LogOut, User, Calculator, Clock, ArrowRightLeft, TrendingUp, Search } from 'lucide-react';
+import { Home, Activity, Calculator, Settings, Menu, X, LogOut, Clock, Search, Briefcase, User, MessageSquare, LayoutDashboard, Shield, Moon, Sun } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Chatbot from '../Chat/Chatbot';
+import Tutorial from '../Onboarding/Tutorial';
 // ... imports
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
@@ -13,10 +15,10 @@ const SidebarItem = ({ icon: Icon, label, to, active }) => (
         to={to}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${active
             ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-lg shadow-brand-primary/20'
-            : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
-            }`}
+            : 'text-text-secondary hover:bg-black/5 dark:hover:bg-white/10 hover:text-text-primary'
+            } `}
     >
-        <Icon className={`h-5 w-5 relative z-10 ${active ? 'text-white' : 'text-text-secondary group-hover:text-text-primary'}`} />
+        <Icon className={`h-5 w-5 relative z-10 ${active ? 'text-white' : 'text-text-secondary group-hover:text-text-primary'} `} />
         <span className="font-medium text-sm relative z-10">{label}</span>
     </Link>
 );
@@ -40,14 +42,22 @@ const DashboardLayout = ({ children }) => {
             };
             fetchHistory();
         }
-    }, [user, location.pathname]); // Refresh on nav change in case new search added
+    }, [user, location.pathname]);
 
     const handleLogout = async () => {
-        // ...
+        try {
+            await signOut();
+            navigate('/login');
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
     };
 
     return (
         <div className="flex h-screen bg-background text-text-primary overflow-hidden font-sans transition-colors duration-300">
+            {/* Tutorial Overlay */}
+            <Tutorial />
+
             {/* Sidebar - Power BI Style */}
             <div className="w-64 bg-surface border-r border-border flex flex-col z-20 shadow-2xl transition-colors duration-300">
                 {/* Brand */}
@@ -75,6 +85,12 @@ const DashboardLayout = ({ children }) => {
                         active={location.pathname === '/'}
                     />
                     <SidebarItem
+                        icon={LayoutDashboard}
+                        label="Dashboard"
+                        to="/dashboard"
+                        active={location.pathname === '/dashboard'}
+                    />
+                    <SidebarItem
                         icon={Activity}
                         label="Risk Analysis"
                         to="/analyze"
@@ -87,17 +103,17 @@ const DashboardLayout = ({ children }) => {
                         active={location.pathname === '/market'}
                     />
 
-                    {/* Recent History Section - Requested Feature */}
-                    {history.length > 0 && (
-                        <div className="mt-8">
-                            <div className="px-4 mb-2 text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
-                                <Clock className="h-3 w-3" /> Recent History
-                            </div>
+                    {/* Recent History Section */}
+                    <div className="mt-8">
+                        <div className="px-4 mb-2 text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                            <Clock className="h-3 w-3" /> Recent History
+                        </div>
+                        {history.length > 0 ? (
                             <div className="space-y-1">
                                 {history.map((item, idx) => (
-                                    <div key={idx} className="group relative px-4 py-2 hover:bg-surface-elevated rounded-lg transition-colors flex items-center justify-between">
+                                    <div key={idx} className="group relative px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors flex items-center justify-between">
                                         <div className="flex items-center gap-3 overflow-hidden">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-brand-secondary shrink-0" />
+                                            <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${item.risk_score > 70 ? 'bg-red-500' : item.risk_score < 30 ? 'bg-green-500' : 'bg-yellow-500'} `} />
                                             <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors max-w-[100px]" title={item.location_name}>
                                                 {item.location_name}
                                             </span>
@@ -112,8 +128,8 @@ const DashboardLayout = ({ children }) => {
                                                 <Search className="h-3 w-3" />
                                             </button>
                                             <button
-                                                onClick={() => navigate('/market', { state: { location: item.location_name, riskScore: 50 } })} // Assuming 50 default if risk unknown
-                                                className="p-1 hover:text-brand-accent transition-colors"
+                                                onClick={() => navigate('/market', { state: { location: item.location_name, riskScore: item.risk_score || 50 } })}
+                                                className="p-1 hover:text-brand-secondary transition-colors"
                                                 title="Calculate ROI"
                                             >
                                                 <Calculator className="h-3 w-3" />
@@ -122,8 +138,10 @@ const DashboardLayout = ({ children }) => {
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="px-4 text-[10px] text-text-secondary opacity-50 italic">No recent searches</div>
+                        )}
+                    </div>
                 </div>
 
                 {/* User Profile / Footer */}
@@ -189,7 +207,7 @@ const DashboardLayout = ({ children }) => {
                 </header>
 
                 {/* Animated Page Content */}
-                <main className="flex-1 overflow-hidden relative p-4 scroll-smooth">
+                <main className="flex-1 overflow-y-auto relative p-4 scroll-smooth custom-scrollbar">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={location.pathname}
@@ -197,7 +215,7 @@ const DashboardLayout = ({ children }) => {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -15, scale: 0.99 }}
                             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="h-full w-full"
+                            className="min-h-full w-full"
                         >
                             {children}
                         </motion.div>
