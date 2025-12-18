@@ -1,156 +1,283 @@
 import React from 'react';
-import { Home, Building, Waves, Siren, Wind, Train, Coffee, MapPin, TrendingUp, AlertTriangle, Sun, CloudSun } from 'lucide-react';
+import { Home, Building, Waves, Siren, Wind, Train, Coffee, MapPin, TrendingUp, AlertTriangle, Leaf, Factory, Users, Scale, Newspaper, DollarSign, Globe, Activity } from 'lucide-react';
+import RiskGauge from './RiskGauge';
+import RiskMetricCard from './RiskMetricCard';
+import HistoricalCharts from '../Charts/HistoricalCharts';
+import FacilitiesDisplay from './FacilitiesDisplay';
+import EconomicDashboard from '../Analytics/EconomicDashboard';
+import VisualMetrics from '../Analytics/VisualMetrics';
 
 const InsightsPanel = ({ data, loading }) => {
     if (loading) {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <div className="h-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-gray-900 to-gray-800">
                 <div className="relative">
-                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600"></div>
+                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-900 border-t-purple-500"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <MapPin className="h-6 w-6 text-blue-600" />
+                        <Activity className="h-6 w-6 text-purple-500" />
                     </div>
                 </div>
-                <p className="mt-4 text-sm font-medium text-gray-600">Analyzing property...</p>
+                <p className="mt-4 text-sm font-medium text-gray-300">Analyzing property...</p>
+                <p className="mt-1 text-xs text-gray-500">Fetching comprehensive 10-point analysis</p>
             </div>
         );
     }
 
     if (!data) {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-slate-50 to-blue-50">
-                <div className="mb-6 p-6 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100">
-                    <MapPin className="h-12 w-12 text-blue-600" />
+            <div className="h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-gray-900 to-gray-800">
+                <div className="mb-6 p-6 rounded-2xl bg-gradient-to-br from-purple-900/30 to-pink-900/30 border border-purple-500/30">
+                    <Activity className="h-12 w-12 text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to Analyze</h3>
-                <p className="text-gray-600 max-w-xs">Enter a location in the search bar above to get instant AI-powered risk insights.</p>
+                <h3 className="text-xl font-bold text-white mb-2">Ready to Analyze</h3>
+                <p className="text-gray-400 max-w-xs">Enter a location in the search bar above to get instant AI-powered 10-point risk analysis with historical trends.</p>
             </div>
         );
     }
 
-    const getRiskColor = (score) => {
-        if (score >= 70) return { color: 'red', label: 'High Risk' };
-        if (score >= 40) return { color: 'yellow', label: 'Medium Risk' };
-        return { color: 'green', label: 'Low Risk' };
-    };
-
-    const overall = getRiskColor(data.overall_score);
+    const riskAnalysis = data.risk_analysis || {};
+    const marketIntel = data.market_intelligence || {};
+    const legalResources = data.legal_resources || {};
+    const additionalInfo = data.additional_info || {};
 
     return (
-        <div className="p-6 h-full flex flex-col bg-gradient-to-br from-white to-slate-50">
-            {/* Section 1: Overall Score */}
-            <div className={`mb-8 p-6 rounded-2xl shadow-lg bg-gradient-to-br ${overall.color === 'red' ? 'from-red-50 to-red-100 border-red-200' :
-                overall.color === 'yellow' ? 'from-yellow-50 to-yellow-100 border-yellow-200' :
-                    'from-green-50 to-green-100 border-green-200'
-                } border-2 flex items-center justify-between hover:shadow-xl transition-shadow`}>
-                <div>
-                    <h2 className="text-lg font-semibold text-gray-700 mb-2">Overall Risk Score</h2>
-                    <div className="mt-1 flex items-baseline gap-2">
-                        <span className={`text-5xl font-bold ${overall.color === 'red' ? 'text-red-600' :
-                            overall.color === 'yellow' ? 'text-yellow-600' :
-                                'text-green-600'
-                            }`}>{data.overall_score}</span>
-                        <span className="text-sm text-gray-500">/ 100</span>
+        <div className="p-6 h-full overflow-y-auto bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 custom-scrollbar">
+            {/* Section 1: Overall Risk Score with Gauge */}
+            <div className="mb-10 p-7 rounded-3xl bg-gradient-to-br from-gray-800/80 via-purple-900/20 to-pink-900/20 border-2 border-purple-500/30 shadow-2xl backdrop-blur-sm">
+                <h2 className="text-lg font-bold text-white mb-5 text-center flex items-center justify-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-purple-400" />
+                    Overall Risk Assessment
+                </h2>
+                <div className="flex justify-center mb-5">
+                    <RiskGauge score={riskAnalysis.overall_score || 50} />
+                </div>
+                {data.location_info?.formatted_address && (
+                    <div className="mt-5 text-center p-4 bg-gray-800/60 rounded-xl border border-purple-500/20">
+                        <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">Location</p>
+                        <p className="text-sm font-semibold text-white">{data.location_info.formatted_address}</p>
+                        {data.location_info.jurisdiction && (
+                            <p className="text-xs text-gray-500 mt-1">{data.location_info.jurisdiction}</p>
+                        )}
                     </div>
-                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold mt-3 ${overall.color === 'red' ? 'bg-red-600 text-white' :
-                        overall.color === 'yellow' ? 'bg-yellow-600 text-white' :
-                            'bg-green-600 text-white'
-                        }`}>
-                        {overall.color === 'red' ? '🔴' : overall.color === 'yellow' ? '🟡' : '🟢'} {overall.label}
-                    </span>
-                </div>
-                <div className={`h-20 w-20 rounded-2xl flex items-center justify-center ${overall.color === 'red' ? 'bg-red-200' :
-                    overall.color === 'yellow' ? 'bg-yellow-200' :
-                        'bg-green-200'
-                    }`}>
-                    <AlertTriangle className={`h-10 w-10 ${overall.color === 'red' ? 'text-red-700' :
-                        overall.color === 'yellow' ? 'text-yellow-700' :
-                            'text-green-700'
-                        }`} />
-                </div>
+                )}
             </div>
 
-            {/* Section 2: Risk Breakdown */}
-            <div className="mb-8">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Risk Breakdown</h3>
-                <div className="space-y-3">
-                    <RiskRow icon={Home} label="Buying Risk" status={data.buying_risk} />
-                    <RiskRow icon={Building} label="Renting Risk" status={data.renting_risk} />
-                    <RiskRow icon={Waves} label="Flood Risk" score={data.flood_risk_score} />
-                    <RiskRow icon={Siren} label="Crime Rate" score={data.crime_score} />
-                </div>
-            </div>
-
-            {/* Section 3: Environmental Factors */}
-            <div className="mb-8">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Environmental Factors</h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex flex-col items-center text-center">
-                        <Sun className="h-8 w-8 text-yellow-500 mb-2" />
-                        <span className="text-xs font-medium text-gray-500 mb-1">Solar Potential</span>
-                        <span className="text-lg font-bold text-gray-900">{data.solar_potential || 'N/A'}</span>
+            {/* Section 2: 10-Point Risk Breakdown */}
+            <div className="mb-10">
+                <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-gray-700/50">
+                    <div className="p-2 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg shadow-md">
+                        <AlertTriangle className="h-4 w-4 text-white" />
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col items-center text-center">
-                        <CloudSun className="h-8 w-8 text-blue-500 mb-2" />
-                        <span className="text-xs font-medium text-gray-500 mb-1">Typical Weather</span>
-                        <span className="text-sm font-bold text-gray-900 line-clamp-2">{data.weather_summary || 'N/A'}</span>
+                    <div>
+                        <h3 className="text-base font-bold text-white">10-Point Risk Analysis</h3>
+                        <p className="text-xs text-gray-400">Comprehensive property evaluation</p>
                     </div>
                 </div>
-                <RiskRow icon={Wind} label="Air Quality" score={data.air_quality_score} subtext={data.air_quality_text} />
-            </div>
+                <div className="grid grid-cols-1 gap-4">
+                    {/* Buying Risk */}
+                    {riskAnalysis.buying_risk && (
+                        <RiskMetricCard
+                            icon={Home}
+                            title="Buying Risk"
+                            score={riskAnalysis.buying_risk.score}
+                            status={riskAnalysis.buying_risk.status}
+                            factors={riskAnalysis.buying_risk.factors}
+                            description="Risk assessment for property purchase"
+                        />
+                    )}
 
-            {/* Section 4: Lifestyle & Growth */}
-            <div className="mb-8">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Lifestyle & Growth</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    <LifestyleCard icon={Train} label="Transport" score={data.transport_score} />
-                    <LifestyleCard icon={Coffee} label="Amenities" score={data.amenities_score} />
-                    <LifestyleCard icon={MapPin} label="Neighbourhood" score={data.neighbourhood_score} />
-                    <LifestyleCard icon={TrendingUp} label="Growth" score={data.growth_potential_score} />
-                </div>
-            </div>
+                    {/* Renting Risk */}
+                    {riskAnalysis.renting_risk && (
+                        <RiskMetricCard
+                            icon={Building}
+                            title="Renting Risk"
+                            score={riskAnalysis.renting_risk.score}
+                            status={riskAnalysis.renting_risk.status}
+                            factors={riskAnalysis.renting_risk.factors}
+                            description="Risk assessment for rental investment"
+                        />
+                    )}
 
-            {/* Section 4: AI Summary & Market Trend */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-5 rounded-2xl border-2 border-blue-200 mb-6 shadow-md hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-2 mb-3">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
-                        <span className="text-xs text-white font-bold">AI</span>
-                    </div>
-                    <h3 className="text-base font-bold text-blue-900">AI Insight</h3>
-                </div>
-                <p className="text-sm text-blue-900 leading-relaxed mb-4 font-medium">
-                    "{data.ai_summary}"
-                </p>
-                <div className="flex items-center gap-2 text-sm font-semibold bg-white/60 backdrop-blur-sm rounded-lg px-3 py-2">
-                    <span className="text-blue-900">Market Prediction:</span>
-                    <span className={`${data.market_trend === 'Up' ? 'text-green-600' : 'text-red-600'} flex items-center gap-1`}>
-                        {data.market_trend === 'Up' ? <TrendingUp className="h-4 w-4" /> : <TrendingUp className="h-4 w-4 rotate-180" />}
-                        Will Go {data.market_trend}
-                    </span>
-                </div>
-            </div>
+                    {/* Flood Risk */}
+                    {riskAnalysis.flood_risk && (
+                        <RiskMetricCard
+                            icon={Waves}
+                            title="Flood Risk"
+                            score={riskAnalysis.flood_risk.score}
+                            status={riskAnalysis.flood_risk.level}
+                            factors={riskAnalysis.flood_risk.zones}
+                            description={riskAnalysis.flood_risk.description}
+                        />
+                    )}
 
-            {/* Section 5: Local News & Developments */}
-            {data.news && data.news.length > 0 && (
-                <div className="mb-8">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Local News & Developments</h3>
-                    <div className="space-y-4">
-                        {data.news.map((item, idx) => (
-                            <div key={idx} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h4 className="text-sm font-bold text-gray-900 leading-tight">{item.headline}</h4>
-                                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap ml-2">{item.source || 'News'}</span>
-                                </div>
-                                <p className="text-xs text-gray-600 mb-2 line-clamp-2">{item.summary}</p>
-                                <div className="flex items-center text-xs text-gray-400 gap-2">
-                                    <span>{item.date}</span>
+                    {/* Crime Rate */}
+                    {riskAnalysis.crime_rate && (
+                        <RiskMetricCard
+                            icon={Siren}
+                            title="Crime Rate"
+                            score={riskAnalysis.crime_rate.score}
+                            status={`${riskAnalysis.crime_rate.rate_per_1000}/1000 • ${riskAnalysis.crime_rate.trend}`}
+                            factors={riskAnalysis.crime_rate.types}
+                            description="Safety and crime statistics"
+                        />
+                    )}
+
+                    {/* Air Quality */}
+                    {riskAnalysis.air_quality && (
+                        <RiskMetricCard
+                            icon={Wind}
+                            title="Air Quality"
+                            score={riskAnalysis.air_quality.score}
+                            status={`AQI ${riskAnalysis.air_quality.aqi} • ${riskAnalysis.air_quality.rating}`}
+                            factors={riskAnalysis.air_quality.pollutants}
+                            description="Environmental air quality index"
+                        />
+                    )}
+
+                    {/* Amenities - Using Premium Facilities Display */}
+                    {riskAnalysis.amenities && (
+                        <div>
+                            <div className="mb-4 p-4 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 rounded-xl border border-indigo-500/30">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <Coffee className="h-4 w-4 text-indigo-400" />
+                                            Proximity to Amenities
+                                        </h4>
+                                        <p className="text-xs text-gray-400 mt-0.5">Quality-rated facilities nearby</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-2xl font-bold text-purple-400">
+                                            {riskAnalysis.amenities.score}
+                                        </div>
+                                        <div className="text-xs text-gray-400">
+                                            Walk: {riskAnalysis.amenities.walkability}/100
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        ))}
+                            <FacilitiesDisplay amenities={riskAnalysis.amenities} />
+                        </div>
+                    )}
+
+                    {/* Transportation */}
+                    {riskAnalysis.transportation && (
+                        <RiskMetricCard
+                            icon={Train}
+                            title="Transportation Score"
+                            score={riskAnalysis.transportation.score}
+                            status={riskAnalysis.transportation.commute_time}
+                            factors={riskAnalysis.transportation.transit_options}
+                            description="Public transit and commute quality"
+                        />
+                    )}
+
+                    {/* Neighbourhood */}
+                    {riskAnalysis.neighbourhood && (
+                        <RiskMetricCard
+                            icon={Users}
+                            title="Neighbourhood Rating"
+                            score={riskAnalysis.neighbourhood.score}
+                            status={riskAnalysis.neighbourhood.rating}
+                            factors={[
+                                riskAnalysis.neighbourhood.character,
+                                `Median Age: ${riskAnalysis.neighbourhood.demographics?.median_age || 'N/A'}`,
+                                `Density: ${riskAnalysis.neighbourhood.demographics?.population_density || 'N/A'}`
+                            ]}
+                            description="Community livability assessment"
+                        />
+                    )}
+
+                    {/* Environmental Hazards */}
+                    {riskAnalysis.environmental_hazards && (
+                        <RiskMetricCard
+                            icon={Factory}
+                            title="Environmental Hazards"
+                            score={riskAnalysis.environmental_hazards.score}
+                            status={riskAnalysis.environmental_hazards.severity}
+                            factors={riskAnalysis.environmental_hazards.hazards}
+                            description="Contamination and pollution risks"
+                        />
+                    )}
+
+                    {/* Growth Potential */}
+                    {riskAnalysis.growth_potential && (
+                        <RiskMetricCard
+                            icon={TrendingUp}
+                            title="Economic Growth Potential"
+                            score={riskAnalysis.growth_potential.score}
+                            status={riskAnalysis.growth_potential.forecast}
+                            factors={riskAnalysis.growth_potential.drivers}
+                            description={riskAnalysis.growth_potential.outlook_5yr}
+                        />
+                    )}
+                </div>
+            </div>
+
+            {/* Section 3: Historical Trends */}
+            {data.historical_trends && (
+                <div className="mb-10">
+                    <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-gray-700/50">
+                        <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg shadow-md">
+                            <TrendingUp className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-white">Historical Trends (2019-2024)</h3>
+                            <p className="text-xs text-gray-400">Market analysis over time</p>
+                        </div>
                     </div>
+                    <HistoricalCharts data={data} />
                 </div>
             )}
 
+            {/* Section 3.5: Advanced Visual Metrics */}
+            <div className="mb-10">
+                <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-gray-700/50">
+                    <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg shadow-md">
+                        <Activity className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-bold text-white">Key Performance Metrics</h3>
+                        <p className="text-xs text-gray-400">Advanced analytics dashboard</p>
+                    </div>
+                </div>
+                <VisualMetrics data={data} />
+            </div>
+
+            {/* Section 3.6: Political & Economic Analysis */}
+            <div className="mb-10">
+                <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-gray-700/50">
+                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg shadow-md">
+                        <Globe className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-bold text-white">Political & Economic Analysis</h3>
+                        <p className="text-xs text-gray-400">Macro factors affecting property value</p>
+                    </div>
+                </div>
+                <EconomicDashboard data={data} />
+            </div>
+
+            {/* Section 4: Market Intelligence & AI Summary */}
+            {marketIntel.ai_summary && (
+                <div className="mb-10">
+                    <div className="bg-gradient-to-br from-blue-900/40 to-indigo-900/40 p-5 rounded-2xl border-2 border-blue-500/30 shadow-md hover:shadow-lg transition-shadow">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md">
+                                <span className="text-xs text-white font-bold">AI</span>
+                            </div>
+                            <h3 className="text-base font-bold text-blue-300">AI Market Intelligence</h3>
+                        </div>
+                        <p className="text-sm text-gray-200 leading-relaxed mb-4 font-medium">
+                            "{marketIntel.ai_summary}"
+                        </p>
+
+                        {/* Market Predictions */}
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            {marketIntel.prediction_6mo && (
+                                <div className="bg-gray-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
+                                    <p className="text-xs text-gray-400 mb-1">6-Month Outlook</p>
+                                    <p className="text-xs font-semibold text-blue-300">{marketIntel.prediction_6mo}</p>
             {/* Section 6: Nearby Infrastructure */}
             <div className="mb-8">
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Nearby Infrastructure</h3>
@@ -209,8 +336,25 @@ const InsightsPanel = ({ data, loading }) => {
                                     </div>
                                     <span className="text-sm font-bold text-primary whitespace-nowrap bg-blue-50 text-blue-700 px-2 py-1 rounded-md">{item.price}</span>
                                 </div>
+                            )}
+                            {marketIntel.prediction_1yr && (
+                                <div className="bg-gray-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
+                                    <p className="text-xs text-gray-400 mb-1">1-Year Outlook</p>
+                                    <p className="text-xs font-semibold text-blue-300">{marketIntel.prediction_1yr}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Current Trend */}
+                        {marketIntel.current_trend && (
+                            <div className="flex items-center gap-2 text-sm font-semibold bg-gray-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
+                                <span className="text-gray-300">Market Direction:</span>
+                                <span className={`${marketIntel.current_trend === 'Up' ? 'text-green-400' : marketIntel.current_trend === 'Down' ? 'text-red-400' : 'text-gray-400'} flex items-center gap-1`}>
+                                    {marketIntel.current_trend === 'Up' ? <TrendingUp className="h-4 w-4" /> : marketIntel.current_trend === 'Down' ? <TrendingUp className="h-4 w-4 rotate-180" /> : '→'}
+                                    {marketIntel.current_trend}
+                                </span>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             )}
@@ -228,78 +372,26 @@ const InsightsPanel = ({ data, loading }) => {
     );
 };
 
-// Helper Components
-const RiskRow = ({ icon: Icon, label, score, status, subtext }) => {
-    let color = 'gray';
-    let displayVal = score;
+            {/* Additional sections remain in next part due to length... */}
 
-    if (status) {
-        if (status === 'High') color = 'red';
-        else if (status === 'Medium') color = 'yellow';
-        else color = 'green';
-        displayVal = status;
-    } else {
-        if (score >= 70) color = 'red';
-        else if (score >= 40) color = 'yellow';
-        else color = 'green';
-    }
-
-    const getColorClass = (c) => {
-        switch (c) {
-            case 'red': return 'text-red-500 bg-red-50';
-            case 'yellow': return 'text-yellow-500 bg-yellow-50';
-            case 'green': return 'text-green-500 bg-green-50';
-            default: return 'text-gray-500 bg-gray-50';
-        }
-    };
-
-    const dotColor = (c) => {
-        switch (c) {
-            case 'red': return 'bg-red-500';
-            case 'yellow': return 'bg-yellow-500';
-            case 'green': return 'bg-green-500';
-            default: return 'bg-gray-500';
-        }
-    }
-
-    return (
-        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${getColorClass(color)}`}>
-                    <Icon className="h-5 w-5" />
-                </div>
-                <div className="flex flex-col">
-                    <span className="font-medium text-gray-700">{label}</span>
-                    {subtext && <span className="text-xs text-gray-400">{subtext}</span>}
-                </div>
-            </div>
-            <div className="flex items-center gap-3">
-                <span className="font-bold text-gray-900">{displayVal}</span>
-                <div className={`h-2.5 w-2.5 rounded-full ${dotColor(color)}`}></div>
-            </div>
+            <style jsx="true">{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 8px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(31, 41, 55, 0.5);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: linear-gradient(180deg, rgba(168, 85, 247, 0.6), rgba(236, 72, 153, 0.6));
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(180deg, rgba(168, 85, 247, 0.9), rgba(236, 72, 153, 0.9));
+                }
+            `}</style>
         </div>
     );
 };
-
-const LifestyleCard = ({ icon: Icon, label, score }) => {
-    let color = 'green';
-    if (score < 50) color = 'grey';
-    else if (score < 75) color = 'yellow';
-
-    const colorText = (c) => {
-        switch (c) {
-            case 'green': return 'text-green-600';
-            case 'yellow': return 'text-yellow-600';
-            default: return 'text-gray-600';
-        }
-    };
-    return (
-        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col items-center text-center">
-            <Icon className={`h-6 w-6 mb-2 ${colorText(color)}`} />
-            <span className="text-xs font-medium text-gray-500">{label}</span>
-            <span className="text-lg font-bold text-gray-900">{score}</span>
-        </div>
-    )
-}
 
 export default InsightsPanel;
