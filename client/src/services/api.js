@@ -1,51 +1,289 @@
+import { geocodeAddress, getLocationContext } from './geocoding';
+
 const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
 
+/**
+ * Comprehensive 10-Point Property Risk Analysis
+ * Analyzes location for buying/renting risks, environmental factors, and growth potential
+ */
 export const analyzePropertyRisk = async (location) => {
+  // First, get enriched location data from OpenCage
+  let locationData = null;
+  let locationContext = `Location: ${location}`;
+
+  try {
+    locationData = await geocodeAddress(location);
+    if (locationData) {
+      locationContext = await getLocationContext(location);
+    }
+  } catch (error) {
+    console.warn('Geocoding failed, proceeding with basic location:', error);
+  }
+
   const prompt = `
-    Act as a real estate risk analyst. 
-    Analyze the location: "${location}".
+You are an expert real estate analyst with deep knowledge of property markets worldwide.
+
+Analyze this property location comprehensively:
+${locationContext}
+
+Provide a detailed JSON response (NO markdown formatting, pure JSON only) with this EXACT structure:
+
+{
+  "location_info": {
+    "formatted_address": "Full formatted address",
+    "coordinates": { "lat": number, "lng": number },
+    "region": "State/Province",
+    "country": "Country name",
+    "jurisdiction": "Legal jurisdiction (e.g., 'California, USA' or 'Maharashtra, India')"
+  },
+  
+  "risk_analysis": {
+    "overall_score": number (0-100, where 100 = highest risk),
     
-    Provide a JSON response ONLY with no markdown formatting. The JSON must have this exact structure:
-    {
-      "overall_score": number (0-100, where 100 is high risk),
-      "buying_risk": "High" | "Medium" | "Low",
-      "renting_risk": "High" | "Medium" | "Low",
-      "flood_risk_score": number (0-100),
-      "crime_score": number (0-100),
-      "air_quality_score": number (0-100),
-      "air_quality_text": "Short description (e.g., 'Good', 'Moderate')",
-      "solar_potential": "Excellent" | "Good" | "Fair" | "Poor",
-      "weather_summary": "Short annual weather summary (e.g., 'Sunny with mild winters')",
-      "transport_score": number (0-100),
-      "amenities_score": number (0-100),
-      "neighbourhood_score": number (0-100),
-      "growth_potential_score": number (0-100),
-      "market_trend": "Up" | "Down" | "Stable",
-      "ai_summary": "1-2 sentence insights about risks and future value.",
-      "coordinates": { "lat": number, "lng": number } (Approximate lat/lng for this location),
-      "news": [
+    "buying_risk": {
+      "score": number (0-100),
+      "status": "High" | "Medium" | "Low",
+      "factors": ["factor 1", "factor 2", "..."]
+    },
+    
+    "renting_risk": {
+      "score": number (0-100),
+      "status": "High" | "Medium" | "Low",
+      "factors": ["factor 1", "factor 2", "..."]
+    },
+    
+    "flood_risk": {
+      "score": number (0-100),
+      "level": "Extreme" | "High" | "Moderate" | "Low" | "Minimal",
+      "zones": ["zone info if available"],
+      "description": "Brief flood risk explanation"
+    },
+    
+    "crime_rate": {
+      "score": number (0-100, lower is safer),
+      "rate_per_1000": number,
+      "trend": "Increasing" | "Stable" | "Decreasing",
+      "types": ["most common crime types"]
+    },
+    
+    "air_quality": {
+      "aqi": number (0-500 AQI standard),
+      "score": number (0-100, higher is better),
+      "rating": "Good" | "Moderate" | "Unhealthy" | "Hazardous",
+      "pollutants": ["primary pollutants"]
+    },
+    
+    "amenities": {
+      "score": number (0-100),
+      "walkability": number (0-100),
+      "nearby": [
         { 
-            "headline": "Headline",
-            "summary": "One sentence summary",
-            "date": "Relative date (e.g. '2 days ago')",
-            "source": "Source Name"
-        }
-      ],
-      "recent_listings": [
+          "type": "Schools", 
+          "count": number, 
+          "closest_distance": "X km",
+          "facilities": [
+            {
+              "name": "School Name",
+              "distance": "X km",
+              "rating": number (1-5 stars),
+              "quality": "Excellent|Very Good|Good|Fair|Poor",
+              "type": "Public|Private",
+              "highlights": ["Academic excellence", "Sports programs", etc.]
+            }
+          ]
+        },
         { 
-          "address": "Address", 
-          "price": "₹Price (in INR)", 
-          "type": "Apartment/House",
-          "date": "Date posting (e.g. '2 days ago')",
-          "coordinates": { "lat": number, "lng": number }
+          "type": "Hospitals", 
+          "count": number, 
+          "closest_distance": "X km",
+          "facilities": [
+            {
+              "name": "Hospital Name",
+              "distance": "X km",
+              "rating": number (1-5 stars),
+              "quality": "Excellent|Very Good|Good|Fair|Poor",
+              "specialty": "General|Specialty",
+              "highlights": ["24/7 Emergency", "Advanced ICU", etc.]
+            }
+          ]
+        },
+        { 
+          "type": "Shopping", 
+          "count": number, 
+          "closest_distance": "X km",
+          "facilities": [
+            {
+              "name": "Mall/Market Name",
+              "distance": "X km",
+              "type": "Mall|Supermarket|Local Market"
+            }
+          ]
+        },
+        { 
+          "type": "Parks", 
+          "count": number, 
+          "closest_distance": "X km",
+          "facilities": [
+            {
+              "name": "Park Name",
+              "distance": "X km",
+              "size": "Large|Medium|Small"
+            }
+          ]
         }
       ]
-    }
+    },
     
-    IMPORTANT: 
-    1. For "recent_listings", ONLY include listings from the **last 30 days**.
-    2. Prices MUST be in **Indian Rupees (INR)** formatted like "₹1.5 Cr" or "₹85 Lacs".
-  `;
+    "transportation": {
+      "score": number (0-100),
+      "transit_options": ["Bus", "Metro", "Train", etc.],
+      "commute_time": "Average to city center",
+      "walkability_index": number (0-100)
+    },
+    
+    "neighbourhood": {
+      "score": number (0-100),
+      "rating": "Excellent" | "Good" | "Average" | "Below Average",
+      "character": "Brief description of neighborhood character",
+      "demographics": {
+        "median_age": number,
+        "population_density": "High|Medium|Low"
+      }
+    },
+    
+    "environmental_hazards": {
+      "score": number (0-100, lower is better),
+      "hazards": ["list any superfund sites, industrial pollution, etc."],
+      "severity": "High" | "Medium" | "Low" | "None"
+    },
+    
+    "growth_potential": {
+      "score": number (0-100),
+      "forecast": "Strong Growth" | "Moderate Growth" | "Stable" | "Declining",
+      "drivers": ["key growth factors"],
+      "outlook_5yr": "Brief 5-year outlook"
+    },
+    
+    "political_stability": {
+      "score": number (0-100, higher is more stable),
+      "status": "Very Stable" | "Stable" | "Moderate" | "Unstable" | "Volatile",
+      "factors": ["key political factors affecting property market"],
+      "recent_events": ["major political events impacting real estate"],
+      "policy_environment": "Brief overview of current property policies"
+    },
+    
+    "trade_economy": {
+      "gdp_growth": number (percentage, e.g., 3.5 for 3.5%),
+      "gdp_trend": "Growing" | "Stable" | "Declining",
+      "inflation_rate": number (percentage),
+      "unemployment_rate": number (percentage),
+      "trade_balance": "Surplus" | "Deficit" | "Balanced",
+      "economic_outlook": "Strong" | "Moderate" | "Weak",
+      "major_industries": ["key industries in the area"],
+      "trade_relations": {
+        "status": "Excellent" | "Good" | "Fair" | "Poor",
+        "key_partners": ["main trade partners"],
+        "impact_on_property": "Brief description of how trade affects local real estate"
+      }
+    }
+  },
+  
+  "historical_trends": {
+    "property_values": [
+      { "year": 2019, "median_price": number, "change_pct": number },
+      { "year": 2020, "median_price": number, "change_pct": number },
+      { "year": 2021, "median_price": number, "change_pct": number },
+      { "year": 2022, "median_price": number, "change_pct": number },
+      { "year": 2023, "median_price": number, "change_pct": number },
+      { "year": 2024, "median_price": number, "change_pct": number }
+    ],
+    
+    "crime_trends": [
+      { "year": 2019, "incidents_per_1000": number, "change_pct": number },
+      { "year": 2020, "incidents_per_1000": number, "change_pct": number },
+      { "year": 2021, "incidents_per_1000": number, "change_pct": number },
+      { "year": 2022, "incidents_per_1000": number, "change_pct": number },
+      { "year": 2023, "incidents_per_1000": number, "change_pct": number },
+      { "year": 2024, "incidents_per_1000": number, "change_pct": number }
+    ],
+    
+    "population": [
+      { "year": 2019, "count": number, "change_pct": number },
+      { "year": 2020, "count": number, "change_pct": number },
+      { "year": 2021, "count": number, "change_pct": number },
+      { "year": 2022, "count": number, "change_pct": number },
+      { "year": 2023, "count": number, "change_pct": number },
+      { "year": 2024, "count": number, "change_pct": number }
+    ],
+    
+    "development_timeline": [
+      { "year": 2020, "events": ["Major development 1", "..."] },
+      { "year": 2021, "events": ["Major development 2", "..."] },
+      { "year": 2022, "events": ["..."] },
+      { "year": 2023, "events": ["..."] },
+      { "year": 2024, "events": ["..."] }
+    ]
+  },
+  
+  "market_intelligence": {
+    "current_trend": "Up" | "Down" | "Stable",
+    "prediction_6mo": "Brief 6-month forecast",
+    "prediction_1yr": "Brief 1-year forecast",
+    "ai_summary": "2-3 sentences about overall investment outlook, key risks, and opportunities",
+    
+    "recent_listings": [
+      {
+        "address": "Property address",
+        "price": "Formatted price in local currency",
+        "type": "Apartment|House|Condo|Land",
+        "bedrooms": number,
+        "sqft": number,
+        "date": "Listed date (e.g., '3 days ago')",
+        "coordinates": { "lat": number, "lng": number }
+      }
+    ],
+    
+    "news": [
+      {
+        "headline": "News headline",
+        "summary": "1-2 sentence summary",
+        "date": "Relative date (e.g., '1 week ago')",
+        "source": "Source name",
+        "relevance": "High" | "Medium" | "Low"
+      }
+    ]
+  },
+  
+  "legal_resources": {
+    "jurisdiction": "Full legal jurisdiction",
+    "property_law_system": "Common Law | Civil Law | Mixed",
+    "key_statutes": [
+      { "name": "Statute name", "description": "What it covers" }
+    ],
+    "dispute_process": "Brief overview of property dispute resolution process",
+    "typical_timeline": "Typical case duration",
+    "resources": [
+      { "name": "Resource name", "type": "Government|Legal Aid|Court", "description": "Brief description" }
+    ]
+  },
+  
+  "additional_info": {
+    "solar_potential": "Excellent" | "Good" | "Fair" | "Poor",
+    "weather_summary": "Brief annual weather summary",
+    "climate_risks": ["hurricanes", "earthquakes", "wildfires", etc.],
+    "insurance_considerations": "Brief note on insurance costs/requirements"
+  }
+}
+
+CRITICAL REQUIREMENTS:
+1. All scores must be realistic based on actual data for this specific location
+2. Historical trends should reflect real market data (2019-2024)
+3. Property prices in local currency (USD for US, INR for India, etc.)
+4. Recent listings should only be from last 30-60 days
+5. Legal resources must be jurisdiction-specific
+6. Provide specific, actionable insights - not generic information
+7. Output ONLY valid JSON, no markdown code blocks
+  `.trim();
 
   try {
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -57,42 +295,158 @@ export const analyzePropertyRisk = async (location) => {
       body: JSON.stringify({
         model: "sonar-pro",
         messages: [
-          { role: "system", content: "You are a helpful and precise real estate AI assistant that outputs only valid JSON." },
+          {
+            role: "system",
+            content: "You are a world-class real estate analyst and legal advisor. Provide detailed, accurate, jurisdiction-specific analysis. Always output pure JSON without markdown formatting."
+          },
           { role: "user", content: prompt }
         ],
-        temperature: 0.2
+        temperature: 0.3,
+        max_tokens: 4000
       })
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("API Error Response:", errText);
-      throw new Error(`API request failed: ${response.status} - ${errText}`);
+      console.error("Perplexity API Error:", errText);
+      throw new Error(`API request failed: ${response.status}`);
     }
 
     const data = await response.json();
-
-    // Parse the content string into JSON
     let content = data.choices[0].message.content;
 
-    // Clean up if markdown code blocks are present
-    content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Clean up markdown code blocks if present
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-    return JSON.parse(content);
+    const parsedData = JSON.parse(content);
+
+    // Merge with geocoding data if available
+    if (locationData) {
+      parsedData.location_info = {
+        ...parsedData.location_info,
+        formatted_address: locationData.formatted_address,
+        coordinates: locationData.coordinates,
+        country: locationData.location_details.country,
+        region: locationData.location_details.state || locationData.location_details.county
+      };
+    }
+
+    return parsedData;
+
   } catch (error) {
     console.error("Error analyzing property:", error);
-    console.log("Using Mock Data due to API Error");
-    // Return mock data fallback if API fails
-    return {
-      overall_score: 75,
-      buying_risk: "High",
-      renting_risk: "Medium",
-      flood_risk_score: 65,
-      crime_score: 58,
-      market_trend: "Up",
-      ai_summary: "Error fetching live data. Showing fallback estimates.",
-      news: ["Keep an eye on interest rates."],
-      recent_listings: []
-    };
+    console.warn("Returning comprehensive mock data...");
+
+    // Comprehensive fallback data
+    return getFallbackData(location, locationData);
   }
 };
+
+/**
+ * Generate comprehensive fallback data when API fails
+ */
+function getFallbackData(location, locationData) {
+  const coords = locationData?.coordinates || { lat: 40.7128, lng: -74.0060 };
+
+  return {
+    location_info: {
+      formatted_address: locationData?.formatted_address || location,
+      coordinates: coords,
+      region: locationData?.location_details?.state || "Unknown Region",
+      country: locationData?.location_details?.country || "Unknown",
+      jurisdiction: "Data unavailable - using estimates"
+    },
+    risk_analysis: {
+      overall_score: 55,
+      buying_risk: { score: 52, status: "Medium", factors: ["Limited data available", "Market volatility"] },
+      renting_risk: { score: 48, status: "Medium", factors: ["Average market conditions"] },
+      flood_risk: { score: 30, level: "Low", zones: [], description: "Estimated low flood risk" },
+      crime_rate: { score: 45, rate_per_1000: 25, trend: "Stable", types: ["Property crime", "Theft"] },
+      air_quality: { aqi: 75, score: 70, rating: "Moderate", pollutants: ["PM2.5"] },
+      amenities: {
+        score: 65,
+        walkability: 60,
+        nearby: [
+          { type: "Schools", count: 3, closest_distance: "1.2 km" },
+          { type: "Hospitals", count: 2, closest_distance: "2.5 km" }
+        ]
+      },
+      transportation: { score: 60, transit_options: ["Bus"], commute_time: "30-45 min", walkability_index: 55 },
+      neighbourhood: {
+        score: 65,
+        rating: "Average",
+        character: "Mixed residential area",
+        demographics: { median_age: 35, population_density: "Medium" }
+      },
+      environmental_hazards: { score: 20, hazards: [], severity: "Low" },
+      growth_potential: {
+        score: 60,
+        forecast: "Moderate Growth",
+        drivers: ["Economic development"],
+        outlook_5yr: "Steady appreciation expected"
+      }
+    },
+    historical_trends: {
+      property_values: [
+        { year: 2019, median_price: 250000, change_pct: 0 },
+        { year: 2020, median_price: 265000, change_pct: 6 },
+        { year: 2021, median_price: 295000, change_pct: 11.3 },
+        { year: 2022, median_price: 320000, change_pct: 8.5 },
+        { year: 2023, median_price: 335000, change_pct: 4.7 },
+        { year: 2024, median_price: 350000, change_pct: 4.5 }
+      ],
+      crime_trends: [
+        { year: 2019, incidents_per_1000: 28, change_pct: 0 },
+        { year: 2020, incidents_per_1000: 26, change_pct: -7.1 },
+        { year: 2021, incidents_per_1000: 27, change_pct: 3.8 },
+        { year: 2022, incidents_per_1000: 25, change_pct: -7.4 },
+        { year: 2023, incidents_per_1000: 24, change_pct: -4 },
+        { year: 2024, incidents_per_1000: 25, change_pct: 4.2 }
+      ],
+      population: [
+        { year: 2019, count: 50000, change_pct: 0 },
+        { year: 2020, count: 51000, change_pct: 2 },
+        { year: 2021, count: 52500, change_pct: 2.9 },
+        { year: 2022, count: 54000, change_pct: 2.9 },
+        { year: 2023, count: 55500, change_pct: 2.8 },
+        { year: 2024, count: 57000, change_pct: 2.7 }
+      ],
+      development_timeline: [
+        { year: 2020, events: ["New transit line approved"] },
+        { year: 2022, events: ["Shopping center opened"] },
+        { year: 2023, events: ["School expansion completed"] },
+        { year: 2024, events: ["Park renovation"] }
+      ]
+    },
+    market_intelligence: {
+      current_trend: "Up",
+      prediction_6mo: "Moderate appreciation expected",
+      prediction_1yr: "Continued steady growth likely",
+      ai_summary: "This is estimated data due to API limitations. The location shows moderate risk levels across most categories with steady growth potential. Recommend conducting additional research before making decisions.",
+      recent_listings: [],
+      news: [
+        {
+          headline: "Data unavailable",
+          summary: "Unable to fetch recent news. Please try again later.",
+          date: "N/A",
+          source: "System",
+          relevance: "Low"
+        }
+      ]
+    },
+    legal_resources: {
+      jurisdiction: "Data unavailable",
+      property_law_system: "Unknown",
+      key_statutes: [],
+      dispute_process: "Please consult local legal resources for jurisdiction-specific information.",
+      typical_timeline: "Varies by jurisdiction",
+      resources: []
+    },
+    additional_info: {
+      solar_potential: "Good",
+      weather_summary: "Data unavailable",
+      climate_risks: [],
+      insurance_considerations: "Standard homeowners insurance recommended"
+    }
+  };
+}
