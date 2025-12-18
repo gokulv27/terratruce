@@ -3,7 +3,7 @@ import MapView from '../components/Map/MapView';
 import InsightsPanel from '../components/Insights/InsightsPanel';
 import { Search, FileText, Loader2, Sparkles } from 'lucide-react';
 import { analyzePropertyRisk, extractAddressFromOCR } from '../services/api';
-import { extractTextFromFile } from '../services/ocrService';
+import { extractTextFromFile, redactPII } from '../services/ocrService';
 
 const Analyze = () => {
     const [showInsights, setShowInsights] = useState(true);
@@ -36,8 +36,12 @@ const Analyze = () => {
         try {
             // Step 1: OCR
             const text = await extractTextFromFile(file);
-            // Step 2: Address Extraction via Perplexity
-            const extractedAddress = await extractAddressFromOCR(text);
+
+            // Step 2: Redact PII (Privacy Measure)
+            const safeText = redactPII(text); // Use the imported redactPII function
+
+            // Step 3: Address Extraction via Perplexity
+            const extractedAddress = await extractAddressFromOCR(safeText);
 
             if (extractedAddress && extractedAddress !== "No address found") {
                 setLocation(extractedAddress);
@@ -148,6 +152,14 @@ const Analyze = () => {
                     ${showInsights ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
                 `}>
                     <InsightsPanel data={riskData} loading={loading} />
+
+                    {/* Safety Disclaimer */}
+                    <div className="mt-8 p-4 bg-slate-100 rounded-xl border border-slate-200 flex items-start gap-3">
+                        <AlertTriangle className="h-4 w-4 text-slate-500 mt-0.5" />
+                        <p className="text-[10px] text-slate-500 leading-normal">
+                            <strong>Disclaimer:</strong> This risk audit is AI-generated and uses crowdsourced data points. It is not a legally binding guarantee of safety or value. We strongly recommend physically visiting the location and consulting a legal professional before finalizing any property transaction.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

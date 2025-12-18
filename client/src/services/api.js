@@ -1,5 +1,9 @@
 const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
 
+// In production (Vercel), we call our own /api/perplexity to keep keys hidden.
+// In development, we can fallback to direct call if needed, but /api/perplexity is preferred.
+const PROXY_URL = '/api/perplexity';
+
 /**
  * Extracts a property address from raw OCR text using Perplexity.
  */
@@ -18,10 +22,13 @@ export const extractAddressFromOCR = async (text) => {
   `;
 
   try {
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    const isProd = import.meta.env.PROD;
+    const url = isProd ? PROXY_URL : 'https://api.perplexity.ai/chat/completions';
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Authorization': isProd ? undefined : `Bearer ${PERPLEXITY_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -35,7 +42,10 @@ export const extractAddressFromOCR = async (text) => {
     });
 
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+
+    // Handle proxy response vs direct response
+    const content = data.choices ? data.choices[0].message.content : (data.error || "No address found");
+    return content.trim();
   } catch (error) {
     console.error("Error extracting address:", error);
     return "No address found";
@@ -73,10 +83,13 @@ export const analyzePropertyRisk = async (location) => {
   `;
 
   try {
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    const isProd = import.meta.env.PROD;
+    const url = isProd ? PROXY_URL : 'https://api.perplexity.ai/chat/completions';
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Authorization': isProd ? undefined : `Bearer ${PERPLEXITY_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -90,9 +103,7 @@ export const analyzePropertyRisk = async (location) => {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error("API Error Response:", errText);
-      throw new Error(`API request failed: ${response.status} - ${errText}`);
+      throw new Error(`API request failed: ${response.status}`);
     }
 
     const data = await response.json();
