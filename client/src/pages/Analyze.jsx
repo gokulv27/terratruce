@@ -49,9 +49,8 @@ const Analyze = () => {
     const [mapLocation, setMapLocation] = useState({ lat: 40.7128, lng: -74.0060 }); // Default NYC
     const [riskData, setRiskData] = useState(null);
     const [showInsights, setShowInsights] = useState(false);
-    const [history, setHistory] = useState([]);
     const { addToCompare, toggleCompareVisibility, comparedProperties } = useComparison();
-    const { updateAnalysis, triggerChat } = useAnalysis();
+    const { updateAnalysis, triggerChat, history, fetchHistory, addToHistory } = useAnalysis();
     const fileInputRef = useRef(null);
 
     // Sync context for Chatbot
@@ -66,46 +65,10 @@ const Analyze = () => {
         }
     }, [routerLocation.state]);
 
-    // Fetch History on Mount/User Change
-    useEffect(() => {
-        if (user) {
-            const fetchHistory = async () => {
-                const { data, error } = await supabase
-                    .from('search_history')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(10);
 
-                if (error) {
-                    console.error("Supabase History Error:", error);
-                } else if (data) {
-                    setHistory(data);
-                }
-            };
-            fetchHistory();
-        }
-    }, [user]);
 
     const saveSearchHistory = async (locationName, riskScore = null) => {
-        if (!locationName || !user) return;
-        try {
-            // Attempt to save with risk_score for smarter history
-            await supabase.from('search_history').insert([{
-                location_name: locationName,
-                user_id: user.id,
-                risk_score: riskScore
-            }]);
-
-            // Refresh local history
-            const { data } = await supabase
-                .from('search_history')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10);
-            if (data) setHistory(data);
-        } catch (err) {
-            console.error("Error tracking search:", err);
-        }
+        await addToHistory(locationName, riskScore);
     };
 
     const handleLocationSelect = async (locationName, coordinates) => {
@@ -125,7 +88,7 @@ const Analyze = () => {
                 setMapLocation(data.location_info.coordinates);
             }
             // Save History with Risk Score
-            await saveSearchHistory(locationName, data.overall_risk_score);
+            await saveSearchHistory(locationName, data.risk_analysis?.overall_score);
         }
         setLoading(false);
     };
@@ -144,7 +107,7 @@ const Analyze = () => {
                 setMapLocation(data.location_info.coordinates);
             }
             // Save History with Risk Score
-            await saveSearchHistory(searchLocation, data.overall_risk_score);
+            await saveSearchHistory(searchLocation, data.risk_analysis?.overall_score);
         }
         setLoading(false);
     };
