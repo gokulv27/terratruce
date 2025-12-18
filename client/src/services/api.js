@@ -34,12 +34,17 @@ export const analyzePropertyRisk = async (location) => {
       "recent_listings": [
         { 
           "address": "Address", 
-          "price": "$Price", 
+          "price": "₹Price (in INR)", 
           "type": "Apartment/House",
+          "date": "Date posting (e.g. '2 days ago')",
           "coordinates": { "lat": number, "lng": number }
         }
       ]
     }
+    
+    IMPORTANT: 
+    1. For "recent_listings", ONLY include listings from the **last 30 days**.
+    2. Prices MUST be in **Indian Rupees (INR)** formatted like "₹1.5 Cr" or "₹85 Lacs".
   `;
 
   try {

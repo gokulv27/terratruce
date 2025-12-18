@@ -164,7 +164,12 @@ const InsightsPanel = ({ data, loading }) => {
                                             <Home className="h-4 w-4 text-blue-500" />
                                             <p className="text-sm font-medium text-gray-900 line-clamp-1">{item.address}</p>
                                         </div>
-                                        <p className="text-xs text-gray-500 ml-5">{item.type}</p>
+                                        <div className="flex items-center gap-2 ml-5">
+                                            <p className="text-xs text-gray-500">{item.type}</p>
+                                            {item.date && (
+                                                <span className="text-xs text-gray-400">• {item.date}</span>
+                                            )}
+                                        </div>
                                     </div>
                                     <span className="text-sm font-bold text-primary whitespace-nowrap bg-blue-50 text-blue-700 px-2 py-1 rounded-md">{item.price}</span>
                                 </div>
