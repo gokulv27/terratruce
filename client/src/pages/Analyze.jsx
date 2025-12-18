@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useLocation as useRouterLocation } from 'react-router-dom';
+import { useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import MapView from '../components/Map/MapView';
 import LocationSearch from '../components/Search/LocationSearch';
 import RiskGauge from '../components/Insights/RiskGauge';
@@ -14,7 +14,7 @@ import InsightsPanel from '../components/Insights/InsightsPanel';
 import { analyzePropertyRisk, extractAddressFromOCR } from '../services/api';
 import { extractTextFromFile, redactPII } from '../services/ocrService';
 import { useComparison } from '../context/ComparisonContext';
-import { Activity, AlertTriangle, TrendingUp, Map as MapIcon, Maximize2, PlusCircle, ArrowRightLeft, Search, FileText, Loader2, Sparkles } from 'lucide-react';
+import { Activity, AlertTriangle, TrendingUp, Map as MapIcon, Maximize2, PlusCircle, ArrowRightLeft, Search, FileText, Loader2, Sparkles, Calculator } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useAnalysis } from '../context/AnalysisContext';
@@ -43,6 +43,7 @@ const DashboardCard = ({ title, icon: Icon, children, className = "", fullHeight
 const Analyze = () => {
     const { user } = useAuth();
     const routerLocation = useRouterLocation(); // Hook for router state
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [scanning, setScanning] = useState(false);
     const [location, setLocation] = useState('');
@@ -209,6 +210,19 @@ const Analyze = () => {
                     />
                 </div>
                 <div className="flex items-center gap-3">
+                    {/* ROI Calculator Button */}
+                    <button
+                        onClick={() => navigate('/market', { state: { location: location, riskScore: riskData?.overall_risk_score } })}
+                        disabled={!riskData}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm ${riskData
+                            ? 'bg-brand-secondary text-white hover:bg-brand-secondary/90 shadow-brand-secondary/20'
+                            : 'bg-surface border border-border text-text-secondary opacity-50 cursor-not-allowed'
+                            }`}
+                    >
+                        <Calculator className="h-4 w-4" />
+                        <span className="hidden sm:inline">Calculate ROI</span>
+                    </button>
+
                     {/* View Comparison Button */}
                     <button
                         onClick={toggleCompareVisibility}
@@ -267,7 +281,7 @@ const Analyze = () => {
             {riskData && (
                 <div className="flex-1 flex overflow-hidden relative">
                     {/* Map View */}
-                    <div className="w-full md:w-[65%] h-full relative z-0">
+                    <div className="w-full md:w-[55%] h-full relative z-0">
                         <MapView
                             location={mapLocation}
                             markers={getMarkers()}
@@ -283,7 +297,7 @@ const Analyze = () => {
 
                     {/* Property Insights Panel */}
                     <div className={`
-                        fixed inset-x-0 bottom-0 h-[65%] md:h-auto md:top-0 md:relative md:inset-auto md:w-[35%] 
+                        fixed inset-x-0 bottom-0 h-[65%] md:h-auto md:top-0 md:relative md:inset-auto md:w-[45%] 
                         bg-surface md:shadow-none border-l border-border overflow-y-auto custom-scrollbar
                         transition-transform duration-300 ease-in-out z-20 rounded-t-3xl md:rounded-none shadow-2xl
                         ${showInsights ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}

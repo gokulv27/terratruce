@@ -11,20 +11,22 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-    // Check system preference or localStorage
+    // Check system preference FIRST, then localStorage
     const getInitialTheme = () => {
         if (typeof window !== 'undefined' && window.localStorage) {
+            // First check if user has explicitly set a preference
             const storedPrefs = window.localStorage.getItem('color-theme');
             if (typeof storedPrefs === 'string') {
                 return storedPrefs;
             }
 
+            // If no stored preference, detect system preference
             const userMedia = window.matchMedia('(prefers-color-scheme: dark)');
             if (userMedia.matches) {
                 return 'dark';
             }
         }
-        return 'dark'; // Default to dark for that premium feel
+        return 'light'; // Default to light for better first impression
     };
 
     const [theme, setTheme] = useState(getInitialTheme);

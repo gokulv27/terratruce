@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Activity, Globe, Shield, Sun, Moon, LogOut, User, Calculator, Clock, ArrowRightLeft, TrendingUp, Search, RefreshCw } from 'lucide-react';
@@ -13,10 +14,10 @@ const SidebarItem = ({ icon: Icon, label, to, active }) => (
         to={to}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${active
             ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-lg shadow-brand-primary/20'
-            : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
-            }`}
+            : 'text-text-secondary hover:bg-black/5 dark:hover:bg-white/10 hover:text-text-primary'
+            } `}
     >
-        <Icon className={`h-5 w-5 relative z-10 ${active ? 'text-white' : 'text-text-secondary group-hover:text-text-primary'}`} />
+        <Icon className={`h-5 w-5 relative z-10 ${active ? 'text-white' : 'text-text-secondary group-hover:text-text-primary'} `} />
         <span className="font-medium text-sm relative z-10">{label}</span>
     </Link>
 );
@@ -39,11 +40,19 @@ const DashboardLayout = ({ children }) => {
     };
 
     const handleLogout = async () => {
-        // ...
+        try {
+            await signOut();
+            navigate('/login');
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
     };
 
     return (
         <div className="flex h-screen bg-background text-text-primary overflow-hidden font-sans transition-colors duration-300">
+            {/* Tutorial Overlay */}
+            <Tutorial />
+
             {/* Sidebar - Power BI Style */}
             <div className="w-64 bg-surface border-r border-border flex flex-col z-20 shadow-2xl transition-colors duration-300">
                 {/* Brand */}
@@ -69,6 +78,12 @@ const DashboardLayout = ({ children }) => {
                         label="Overview"
                         to="/"
                         active={location.pathname === '/'}
+                    />
+                    <SidebarItem
+                        icon={LayoutDashboard}
+                        label="Dashboard"
+                        to="/dashboard"
+                        active={location.pathname === '/dashboard'}
                     />
                     <SidebarItem
                         icon={Activity}
@@ -222,7 +237,7 @@ const DashboardLayout = ({ children }) => {
                 </header>
 
                 {/* Animated Page Content */}
-                <main className="flex-1 overflow-hidden relative p-4 scroll-smooth">
+                <main className="flex-1 overflow-y-auto relative p-4 scroll-smooth custom-scrollbar">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={location.pathname}
@@ -230,7 +245,7 @@ const DashboardLayout = ({ children }) => {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -15, scale: 0.99 }}
                             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="h-full w-full"
+                            className="min-h-full w-full"
                         >
                             {children}
                         </motion.div>

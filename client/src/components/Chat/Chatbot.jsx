@@ -217,14 +217,14 @@ const Chatbot = () => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Suggestions */}
-                    {messages.length < 3 && (
-                        <div className="px-4 py-2 flex gap-2 overflow-x-auto no-scrollbar">
+                    {/* Suggestions - Always show when bot has responded and not typing */}
+                    {!isTyping && messages.length > 0 && messages[messages.length - 1].type === 'bot' && (
+                        <div className="px-4 py-2 flex gap-2 overflow-x-auto no-scrollbar border-t border-border bg-surface-elevated/50">
                             {suggestions.map((s, i) => (
                                 <button
                                     key={i}
                                     onClick={s.action}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-full text-xs font-medium text-text-secondary hover:text-brand-primary hover:border-brand-primary/50 transition-colors whitespace-nowrap shadow-sm"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-full text-xs font-medium text-text-secondary hover:text-brand-primary hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all whitespace-nowrap shadow-sm"
                                 >
                                     <s.icon className="h-3 w-3" />
                                     {s.label}

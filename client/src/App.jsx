@@ -10,6 +10,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ComparisonProvider } from './context/ComparisonContext';
 import { AuthProvider } from './context/AuthContext';
 import { AnalysisProvider, useAnalysis } from './context/AnalysisContext';
+import { PortfolioProvider } from './context/PortfolioContext';
+import Dashboard from './pages/Dashboard';
 
 // Wrap authenticated pages in layout
 const MainLayoutWrapper = ({ children }) => {
@@ -75,6 +77,11 @@ function AppContent() {
           </div>
         </MainLayoutWrapper>
       } />
+      <Route path="/dashboard" element={
+        <MainLayoutWrapper>
+          <Dashboard />
+        </MainLayoutWrapper>
+      } />
       {/* Settings removed as requested */}
     </Routes>
   );
@@ -85,11 +92,13 @@ function App() {
     <AuthProvider>
       <ThemeProvider>
         <ComparisonProvider>
-          <AnalysisProvider>
-            <Router>
-              <AppContent />
-            </Router>
-          </AnalysisProvider>
+          <PortfolioProvider>
+            <AnalysisProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </AnalysisProvider>
+          </PortfolioProvider>
         </ComparisonProvider>
       </ThemeProvider>
     </AuthProvider>
