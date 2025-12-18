@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Chatbot from '../Chat/Chatbot';
+import Tutorial from '../Onboarding/Tutorial';
 import { useAnalysis } from '../../context/AnalysisContext';
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (

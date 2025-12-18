@@ -101,18 +101,18 @@ const Dashboard = () => {
                             <AreaChart data={chartData.length > 0 ? chartData : [{ name: 'Start', value: 0 }, { name: 'Now', value: 0 }]}>
                                 <defs>
                                     <linearGradient id="colorFlow" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="var(--brand-primary)" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.5} />
+                                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 11, fontWeight: '600' }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 11, fontWeight: '600' }} tickFormatter={(val) => `${displayCurrency}${val}`} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(var(--border))" opacity={0.3} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgb(var(--text-primary))', fontSize: 11, fontWeight: '600' }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgb(var(--text-primary))', fontSize: 11, fontWeight: '600' }} tickFormatter={(val) => `${displayCurrency}${val}`} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)', background: 'var(--surface)' }}
-                                    itemStyle={{ color: 'var(--brand-primary)', fontWeight: 'bold' }}
+                                    itemStyle={{ color: '#3B82F6', fontWeight: 'bold' }}
                                 />
-                                <Area type="monotone" dataKey="value" stroke="var(--brand-primary)" fill="url(#colorFlow)" strokeWidth={3} animationDuration={1500} />
+                                <Area type="monotone" dataKey="value" stroke="#3B82F6" fill="url(#colorFlow)" strokeWidth={3} animationDuration={1500} />
                             </AreaChart>
                         </ResponsiveContainer>
                         {chartData.length === 0 && (
