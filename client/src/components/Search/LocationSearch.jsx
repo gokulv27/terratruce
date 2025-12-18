@@ -1,55 +1,82 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, Loader, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, MapPin, Clock, X, Loader2 } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { getSuggestions } from '../../services/geocoding';
 
-/**
- * Enhanced Location Search with Google-like Predictions
- * Shows suggestions after typing 5+ characters using OpenCage API
- */
-const LocationSearch = ({ onLocationSelect, loading }) => {
+const LocationSearch = ({ onSearch, history = [], loading }) => {
     const [query, setQuery] = useState('');
-    const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+    const [apiSuggestions, setApiSuggestions] = useState([]);
+    const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+    const dropdownRef = useRef(null);
     const searchRef = useRef(null);
+    const debounceTimeout = useRef(null);
 
-    // Fetch real suggestions from OpenCage API
-    useEffect(() => {
-        if (query.length >= 5) {
-            setLoadingSuggestions(true);
+    // Initial load animation for the search bar
+    useGSAP(() => {
+        gsap.from(searchRef.current, {
+            y: -20,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power3.out"
+        });
+    }, []);
 
-            const timer = setTimeout(async () => {
-                try {
-                    const apiKey = import.meta.env.VITE_OPENCAGE_API_KEY;
-                    const response = await fetch(
-                        `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(query)}&key=${apiKey}&limit=8&no_annotations=1`
-                    );
-                    const data = await response.json();
+    // Filter local history
+    const filteredHistory = query
+        ? history.filter(item => item.location_name.toLowerCase().includes(query.toLowerCase()))
+        : history;
 
-                    if (data.results) {
-                        const formattedSuggestions = data.results.map(result => ({
-                            name: result.formatted,
-                            type: result.components._type || 'location',
-                            lat: result.geometry.lat,
-                            lng: result.geometry.lng
-                        }));
-                        setSuggestions(formattedSuggestions);
-                        setShowSuggestions(true);
-                    }
-                } catch (error) {
-                    console.error('Error fetching suggestions:', error);
-                } finally {
-                    setLoadingSuggestions(false);
-                }
-            }, 300);
+    // Handle input change
+    const handleInputChange = (e) => {
+        const val = e.target.value;
+        setQuery(val);
+        setShowSuggestions(true);
 
-            return () => clearTimeout(timer);
-        } else {
-            setSuggestions([]);
-            setShowSuggestions(false);
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+
+        if (val.length < 3) {
+            setApiSuggestions([]);
+            setIsSearchingSuggestions(false);
+            return;
         }
-    }, [query]);
 
-    // Close suggestions when clicking outside
+        setIsSearchingSuggestions(true);
+        debounceTimeout.current = setTimeout(async () => {
+            const results = await getSuggestions(val);
+            setApiSuggestions(results);
+            setIsSearchingSuggestions(false);
+        }, 500);
+    };
+
+    const handleSelectSuggestion = (suggestion, isApi = false) => {
+        const name = isApi ? suggestion.label : suggestion.name;
+        const locationData = isApi ? {
+            name: suggestion.label,
+            lat: suggestion.geometry.lat,
+            lng: suggestion.geometry.lng
+        } : suggestion;
+
+        setQuery(name);
+        setShowSuggestions(false);
+        onSearch(locationData);
+    };
+
+    const handleClear = () => {
+        setQuery('');
+        setApiSuggestions([]);
+        setShowSuggestions(false);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && query) {
+            setShowSuggestions(false);
+            onSearch({ name: query, lat: null, lng: null });
+        }
+    };
+
+    // Close on outside click
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -60,144 +87,117 @@ const LocationSearch = ({ onLocationSelect, loading }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleSelectSuggestion = (location) => {
-        setQuery(location.name);
-        setShowSuggestions(false);
-        onLocationSelect(location.name, { lat: location.lat, lng: location.lng });
-    };
-
-    const handleSearch = () => {
-        if (query.trim()) {
-            setShowSuggestions(false);
-            onLocationSelect(query);
+    // GSAP Dropdown Animation
+    useGSAP(() => {
+        if (showSuggestions && dropdownRef.current) {
+            gsap.fromTo(dropdownRef.current,
+                { opacity: 0, y: -10, scaleY: 0.95 },
+                { opacity: 1, y: 0, scaleY: 1, duration: 0.2, ease: "power2.out" }
+            );
         }
-    };
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            handleSearch();
-        }
-    };
-
-    const clearSearch = () => {
-        setQuery('');
-        setSuggestions([]);
-        setShowSuggestions(false);
-    };
+    }, [showSuggestions]);
 
     return (
-        <div ref={searchRef} className="relative w-full">
-            {/* Search Input */}
-            <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-text-secondary" />
-                </div>
+        <div ref={searchRef} className="relative w-full max-w-2xl mx-auto z-50">
+            <div className={`relative flex items-center bg-surface border transition-all duration-300 ${showSuggestions ? 'rounded-t-2xl border-brand-primary shadow-lg' : 'rounded-2xl border-border hover:border-brand-primary/50 shadow-sm'}`}>
+                <Search className="absolute left-4 h-5 w-5 text-text-secondary" />
                 <input
                     type="text"
-                    className="block w-full pl-12 pr-32 py-4 bg-surface/80 border-2 border-border rounded-xl leading-5 text-text-primary placeholder-text-secondary focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/30 sm:text-sm transition-all shadow-lg backdrop-blur-sm hover:border-brand-primary/50"
-                    placeholder="Search location (minimum 5 characters for suggestions)"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    onFocus={() => query.length >= 5 && setShowSuggestions(true)}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setShowSuggestions(true)}
+                    placeholder="Search location (e.g., Ambattur, Chennai)..."
+                    className="w-full bg-transparent py-4 pl-12 pr-12 text-text-primary placeholder:text-text-secondary/70 focus:outline-none rounded-2xl"
+                    disabled={loading}
                 />
-
-                {/* Clear button */}
-                {query && (
-                    <button
-                        onClick={clearSearch}
-                        className="absolute right-24 top-1/2 -translate-y-1/2 p-2 hover:bg-surface-elevated rounded-lg transition-colors"
-                    >
-                        <X className="h-4 w-4 text-text-secondary hover:text-text-primary" />
+                {query ? (
+                    <button onClick={handleClear} className="absolute right-4 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                        <X className="h-4 w-4 text-text-secondary" />
                     </button>
+                ) : (
+                    loading && (
+                        <div className="absolute right-4 animate-spin">
+                            <Loader2 className="h-4 w-4 text-brand-primary" />
+                        </div>
+                    )
                 )}
-
-                <button
-                    onClick={handleSearch}
-                    disabled={loading || !query.trim()}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
-                >
-                    {loading ? (
-                        <>
-                            <Loader className="h-4 w-4 animate-spin" />
-                            Analyzing...
-                        </>
-                    ) : (
-                        'Analyze'
-                    )}
-                </button>
             </div>
 
-            {/* Autocomplete Suggestions */}
-            {showSuggestions && (suggestions.length > 0 || loadingSuggestions) && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-surface/90 backdrop-blur-xl border-2 border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-slideDown">
-                    <div className="p-2 max-h-80 overflow-y-auto custom-scrollbar">
-                        {loadingSuggestions ? (
-                            <div className="flex items-center justify-center p-4">
-                                <Loader className="h-5 w-5 text-brand-primary animate-spin" />
-                                <span className="ml-2 text-sm text-text-secondary">Finding locations...</span>
+            {showSuggestions && (
+                <div
+                    ref={dropdownRef}
+                    className="absolute top-full left-0 right-0 bg-surface border border-t-0 border-border rounded-b-2xl shadow-xl overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar"
+                >
+                    {/* API Loading State */}
+                    {isSearchingSuggestions && (
+                        <div className="p-3 flex items-center gap-2 text-xs text-text-secondary justify-center bg-surface-elevated/50">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Finding locations...
+                        </div>
+                    )}
+
+                    {/* Live Suggestions */}
+                    {apiSuggestions.length > 0 && (
+                        <div className="py-2">
+                            <div className="px-4 py-1 text-[10px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                Suggestions
                             </div>
-                        ) : (
-                            <>
-                                <div className="px-3 py-2 text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
-                                    <MapPin className="h-3 w-3" />
-                                    Suggested Locations ({suggestions.length})
-                                </div>
-                                {suggestions.map((location, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleSelectSuggestion(location)}
-                                        className="w-full flex items-center gap-3 px-3 py-3 hover:bg-brand-primary/10 rounded-lg transition-colors text-left group"
-                                    >
-                                        <div className="p-2 bg-brand-primary/10 rounded-lg group-hover:bg-brand-primary/20 transition-colors flex-shrink-0">
-                                            <MapPin className="h-4 w-4 text-brand-primary" />
+                            {apiSuggestions.map((item, idx) => (
+                                <button
+                                    key={`api-${idx}`}
+                                    onClick={() => handleSelectSuggestion(item, true)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand-primary/5 transition-colors text-left group border-l-2 border-transparent hover:border-brand-primary"
+                                >
+                                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg group-hover:bg-white text-text-secondary group-hover:text-brand-primary transition-colors">
+                                        <MapPin className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-sm font-medium text-text-primary group-hover:text-brand-primary transition-colors">
+                                        {item.label}
+                                    </span>
+                                </button>
+                            ))}
+                            {history.length > 0 && <div className="h-px bg-border my-2 mx-4" />}
+                        </div>
+                    )}
+
+                    {/* History */}
+                    {(filteredHistory.length > 0 || history.length > 0) && (
+                        <div className="bg-surface-elevated/30 py-2">
+                            <div className="px-4 py-1 text-[10px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Recent
+                            </div>
+                            {(filteredHistory.length > 0 ? filteredHistory : history).map((item, idx) => (
+                                <button
+                                    key={`hist-${idx}`}
+                                    onClick={() => handleSelectSuggestion({ name: item.location_name, lat: null, lng: null })}
+                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand-primary/5 transition-colors text-left group"
+                                >
+                                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-text-secondary group-hover:text-brand-primary transition-colors">
+                                        <Clock className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium text-text-primary truncate">{item.location_name}</div>
+                                        <div className="text-[10px] text-text-secondary">
+                                            {new Date(item.created_at).toLocaleDateString()}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-text-primary truncate">{location.name}</div>
-                                            <div className="text-xs text-text-secondary capitalize">{location.type}</div>
-                                        </div>
-                                    </button>
-                                ))}
-                            </>
-                        )}
-                    </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {apiSuggestions.length === 0 && filteredHistory.length === 0 && !isSearchingSuggestions && query.length > 2 && (
+                        <div className="p-8 text-center text-text-secondary">
+                            <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No locations found.</p>
+                            <p className="text-xs opacity-70">Try a broader area name.</p>
+                        </div>
+                    )}
                 </div>
             )}
-
-            <style jsx="true">{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-slideDown {
-          animation: slideDown 0.2s ease-out;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(31, 41, 55, 0.5);
-          border-radius: 10px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(168, 85, 247, 0.5);
-          border-radius: 10px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(168, 85, 247, 0.8);
-        }
-      `}</style>
         </div>
     );
 };

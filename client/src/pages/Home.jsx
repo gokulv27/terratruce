@@ -1,372 +1,420 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Shield, TrendingUp, MapPin, Sparkles, ArrowRight, BarChart3, Search, Layers, Clock, Flame, Info, AlertTriangle, Trash2, PlusCircle, User, Zap, Globe } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../services/supabase';
+import React, { useRef, useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Shield, TrendingUp, Search, Map, ArrowRight, BarChart2, Calculator, Flame, Clock, MapPin, ChevronRight, Activity, Zap, Layers, Globe } from 'lucide-react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useAnalysis } from '../context/AnalysisContext';
 import { useAuth } from '../context/AuthContext';
-import { useComparison } from '../context/ComparisonContext';
-import { analyzePropertyRisk } from '../services/api';
+import { supabase } from '../services/supabase';
 
-const FeatureCard = ({ icon: Icon, title, desc, delay }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay }}
-        className="p-6 rounded-2xl bg-surface border border-border hover:border-brand-primary/50 shadow-sm hover:shadow-lg transition-all"
-    >
-        <div className="w-12 h-12 bg-surface-elevated rounded-xl flex items-center justify-center mb-4 text-brand-primary">
-            <Icon className="h-6 w-6" />
-        </div>
-        <h3 className="text-lg font-bold text-text-primary mb-2">{title}</h3>
-        <p className="text-sm text-text-secondary leading-relaxed">{desc}</p>
-    </motion.div>
-);
+gsap.registerPlugin(ScrollTrigger);
 
-const SearchItem = ({ item, popular = false, isHistory = false, onDelete, onCompare }) => {
-    const label = popular ? item.location_name || item.location : item.location_name;
-    const date = popular ? null : new Date(item.searched_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const count = popular ? item.search_count || item.count : null;
+const SYNTHETIC_HOT_SEARCHES = {
+    "Tamil Nadu": [
+        { name: "Ambattur, Chennai", growth: "+12%" },
+        { name: "Velachery, Chennai", growth: "+8%" },
+        { name: "OMR, Chennai", growth: "+15%" },
+        { name: "Coimbatore", growth: "+5%" }
+    ],
+    "Default": [
+        { name: "Mumbai", growth: "+12%" },
+        { name: "Bangalore", growth: "+15%" },
+        { name: "Hyderabad", growth: "+10%" },
+        { name: "Chennai", growth: "+8%" }
+    ]
+};
+
+const CommandCenter = ({ hotSearches, onSearch }) => {
+    const [activeTab, setActiveTab] = useState('trends');
+    const [price, setPrice] = useState(650000);
+    const [rate, setRate] = useState(7.2);
+
+    const payment = Math.round((price - 100000) * ((rate / 100) / 12) * Math.pow(1 + (rate / 100) / 12, 360) / (Math.pow(1 + (rate / 100) / 12, 360) - 1));
 
     return (
-        <div className="flex items-center justify-between p-3 rounded-xl bg-surface-elevated/50 hover:bg-surface-elevated transition-colors border border-border group">
-            <div className="flex items-center gap-3 overflow-hidden">
-                <div className={`p-2 rounded-lg shrink-0 ${popular ? 'bg-orange-500/10 text-orange-500' : 'bg-brand-primary/10 text-brand-primary'}`}>
-                    {popular ? <Flame className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                </div>
-                <div className="min-w-0">
-                    <div className="font-semibold text-text-primary text-sm truncate">{label}</div>
-                    {!popular && <div className="text-xs text-text-secondary">{date}</div>}
-                    {popular && <div className="text-xs text-text-secondary">{count} Searches</div>}
-                </div>
+        <div className="w-full max-w-sm mx-auto mr-0 bg-surface/90 backdrop-blur-xl border border-border rounded-3xl shadow-2xl overflow-hidden relative z-20 hover:scale-[1.02] transition-transform duration-500">
+            {/* Header / Tabs */}
+            <div className="flex border-b border-border bg-surface-elevated/50 p-1">
+                {[
+                    { id: 'trends', icon: Flame, label: 'Trends' },
+                    { id: 'calc', icon: Calculator, label: 'Calc' },
+                    { id: 'risk', icon: Activity, label: 'Risk' }
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
+                            ? 'bg-surface shadow-sm text-brand-primary'
+                            : 'text-text-secondary hover:text-text-primary hover:bg-surface/50'
+                            }`}
+                    >
+                        <tab.icon className="h-4 w-4" />
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
-            <div className={`flex items-center gap-1 ${isHistory ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                {isHistory && (
-                    <>
-                        <button
-                            onClick={() => onCompare(item)}
-                            className="p-1.5 hover:bg-brand-primary/10 text-text-secondary hover:text-brand-primary rounded-lg transition-colors"
-                            title="Add to Compare"
-                        >
-                            <PlusCircle className="h-4 w-4" />
-                        </button>
-                        <button
-                            onClick={() => onDelete(item.id)}
-                            className="p-1.5 hover:bg-red-500/10 text-text-secondary hover:text-red-500 rounded-lg transition-colors"
-                            title="Delete from History"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </button>
-                    </>
+            {/* Content Area */}
+            <div className="p-6 min-h-[300px]">
+                {activeTab === 'trends' && (
+                    <div className="space-y-4 animate-fade-in">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider">Live Market Heat</h3>
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                        </div>
+                        <div className="space-y-2">
+                            {hotSearches.slice(0, 3).map((item, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => onSearch(item.name)}
+                                    className="w-full flex items-center justify-between p-3 bg-surface-elevated rounded-xl hover:bg-brand-primary/5 hover:border-brand-primary/20 border border-transparent transition-all group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-xs font-bold text-text-secondary group-hover:text-brand-primary">#{idx + 1}</div>
+                                        <div className="text-sm font-bold text-text-primary text-left">{item.name}</div>
+                                    </div>
+                                    <div className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                                        {item.growth}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-4 p-3 bg-brand-accent/5 border border-brand-accent/10 rounded-xl">
+                            <div className="flex items-center gap-2 text-brand-accent text-xs font-bold mb-1">
+                                <Zap className="h-3 w-3" /> Insider Tip
+                            </div>
+                            <p className="text-[10px] text-text-secondary leading-tight">
+                                Demand in {hotSearches[0]?.name.split(',')[0]} has spiked 40% this week.
+                            </p>
+                        </div>
+                    </div>
                 )}
 
-                <Link to="/analyze" className="p-1.5 bg-background rounded-lg text-text-primary shadow-sm transition-all hover:scale-110 ml-1">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
+                {activeTab === 'calc' && (
+                    <div className="space-y-6 animate-fade-in">
+                        <div className="text-center">
+                            <div className="text-[10px] text-text-secondary font-bold uppercase mb-1">Est. Monthly Payment</div>
+                            <div className="text-4xl font-black text-brand-primary tracking-tight">
+                                ${payment.toLocaleString()}
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold text-text-secondary">
+                                    <span>Price</span>
+                                    <span>${price.toLocaleString()}</span>
+                                </div>
+                                <input
+                                    type="range" min="200000" max="1000000" step="10000"
+                                    value={price} onChange={(e) => setPrice(Number(e.target.value))}
+                                    className="w-full h-2 bg-surface-elevated rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold text-text-secondary">
+                                    <span>Rate</span>
+                                    <span>{rate}%</span>
+                                </div>
+                                <input
+                                    type="range" min="3" max="10" step="0.1"
+                                    value={rate} onChange={(e) => setRate(Number(e.target.value))}
+                                    className="w-full h-2 bg-surface-elevated rounded-lg appearance-none cursor-pointer accent-brand-secondary"
+                                />
+                            </div>
+                        </div>
+                        <button className="w-full py-3 bg-brand-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-primary/20 hover:scale-[1.02] transition-transform">
+                            Full Analysis
+                        </button>
+                    </div>
+                )}
+
+                {activeTab === 'risk' && (
+                    <div className="space-y-4 animate-fade-in text-center pt-4">
+                        <div className="relative w-32 h-32 mx-auto rounded-full border-8 border-surface-elevated flex items-center justify-center">
+                            <svg className="absolute w-full h-full -rotate-90">
+                                <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-elevated" />
+                                <circle cx="64" cy="64" r="56" stroke="url(#gradient)" strokeWidth="8" fill="none" strokeDasharray="351" strokeDashoffset="100" className="text-brand-primary transition-all duration-1000" />
+                            </svg>
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="var(--brand-primary)" />
+                                    <stop offset="100%" stopColor="var(--brand-secondary)" />
+                                </linearGradient>
+                            </defs>
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-text-primary">85</div>
+                                <div className="text-[10px] font-bold text-text-secondary uppercase">Safe</div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-left">
+                            <div className="p-2 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/20">
+                                <div className="text-[10px] text-red-600 font-bold">Flood Risk</div>
+                                <div className="text-sm font-bold text-text-primary">Low</div>
+                            </div>
+                            <div className="p-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
+                                <div className="text-[10px] text-blue-600 font-bold">Appreciation</div>
+                                <div className="text-sm font-bold text-text-primary">+8.5%</div>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-text-secondary mt-2">
+                            Simulated risk profile. Search a location for real data.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
+const InteractiveFeatureCard = ({ icon: Icon, title, desc, delay, type }) => (
+    <div className={`p-8 bg-surface border border-border rounded-3xl hover:border-brand-primary/30 transition-all hover:-translate-y-2 premium-shadow group relative overflow-hidden animate-fade-in-delay${delay ? `-${delay}` : ''}`}>
+        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Icon className="h-32 w-32 -mr-8 -mt-8 text-brand-primary rotate-12" />
+        </div>
+
+        <div className="relative z-10">
+            <div className="h-14 w-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center mb-6 text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-colors duration-300 shadow-sm">
+                <Icon className="h-7 w-7" />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-text-primary">{title}</h3>
+            <p className="text-sm text-text-secondary leading-relaxed mb-6">{desc}</p>
+
+            {/* Micro Interaction Preview */}
+            <div className="h-16 w-full bg-surface-elevated rounded-xl border border-border overflow-hidden flex items-center justify-center relative group-hover:border-brand-primary/20 transition-colors">
+                {type === 'search' && (
+                    <div className="flex items-center gap-2 text-xs font-mono text-text-secondary">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                        Typing "Bangalore"...
+                    </div>
+                )}
+                {type === 'risk' && (
+                    <div className="flex gap-1 items-end h-8">
+                        <div className="w-2 bg-red-400 h-4 rounded-t-sm" />
+                        <div className="w-2 bg-orange-400 h-6 rounded-t-sm" />
+                        <div className="w-2 bg-yellow-400 h-3 rounded-t-sm" />
+                        <div className="w-2 bg-green-400 h-8 rounded-t-sm animate-pulse" />
+                        <div className="w-2 bg-blue-400 h-5 rounded-t-sm" />
+                    </div>
+                )}
+                {type === 'calc' && (
+                    <div className="flex items-center gap-2">
+                        <div className="text-lg font-bold text-brand-primary">$5,400</div>
+                        <div className="text-[10px] text-text-secondary">/mo</div>
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+);
+
 const Home = () => {
+    const containerRef = useRef(null);
+    const heroRef = useRef(null);
+    const trendingRef = useRef(null);
+    const navigate = useNavigate();
+    const { analysisState } = useAnalysis();
     const { user } = useAuth();
-    const { addToCompare } = useComparison();
 
-    // Global Feed
+    const [userState, setUserState] = useState(null);
+    const [hotSearches, setHotSearches] = useState(SYNTHETIC_HOT_SEARCHES["Default"]);
     const [recentSearches, setRecentSearches] = useState([]);
-    const [popularSearches, setPopularSearches] = useState([]);
-    const [globalLoading, setGlobalLoading] = useState(true);
 
-    // Private History
-    const [myHistory, setMyHistory] = useState([]);
-    const [activeTab, setActiveTab] = useState('global'); // 'global' | 'mine'
-
-    // Fetch Global Data
-    const fetchGlobalData = async () => {
-        try {
-            // Recent (Public Feed - maybe limit to anon or all)
-            const { data: recentData } = await supabase
-                .from('search_history')
-                .select('id, location_name, searched_at')
-                .order('searched_at', { ascending: false })
-                .limit(4);
-
-            if (recentData) setRecentSearches(recentData);
-
-            // Popular searches view might not exist or be empty, handled gracefully?
-            const { data: popularData, error } = await supabase
-                .from('popular_searches')
-                .select('location_name, search_count')
-                .limit(4);
-
-            if (popularData) setPopularSearches(popularData);
-
-            // Fallback if view query failed or empty (optional, keeping it simple)
-            if (!popularData || popularData.length === 0) {
-                // basic mock or fallback
-            }
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setGlobalLoading(false);
-        }
-    };
-
-    // Fetch My History
-    const fetchMyHistory = async () => {
-        if (!user) return;
-        try {
-            const { data } = await supabase
-                .from('search_history')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('searched_at', { ascending: false })
-                .limit(10);
-
-            if (data) setMyHistory(data);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
+    // 1. Detect User State for Personalization
     useEffect(() => {
-        fetchGlobalData();
-        if (user) fetchMyHistory();
+        const detectState = async () => {
+            if (analysisState?.userLocation) {
+                setHotSearches(SYNTHETIC_HOT_SEARCHES["Tamil Nadu"]);
+                setUserState("Tamil Nadu");
+            }
+        };
+        detectState();
+    }, [analysisState?.userLocation]);
 
-        // Real-time subscription
-        const subscription = supabase
-            .channel('public:search_history')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'search_history' }, () => {
-                fetchGlobalData();
-                if (user) fetchMyHistory();
-            })
-            .subscribe();
-
-        return () => { subscription.unsubscribe(); };
+    // 2. Fetch Recent History
+    useEffect(() => {
+        if (user) {
+            const fetchHistory = async () => {
+                const { data } = await supabase.from('search_history').select('*').order('created_at', { ascending: false }).limit(4);
+                if (data) setRecentSearches(data);
+            };
+            fetchHistory();
+        }
     }, [user]);
 
-    // Handlers
-    const handleDelete = async (id) => {
-        try {
-            const { error } = await supabase.from('search_history').delete().eq('id', id);
-            if (error) throw error;
-            setMyHistory(prev => prev.filter(i => i.id !== id));
-        } catch (err) {
-            console.error("Delete failed:", err);
-            alert("Failed to delete history item. Check RLS policies.");
-        }
-    };
+    // Animations
+    useGSAP(() => {
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-    const handleCompare = async (item) => {
-        try {
-            // Re-fetch logic or mock
-            const data = await analyzePropertyRisk(item.location_name);
-            if (data) {
-                addToCompare(data);
-                // alert(`Added ${item.location_name} to comparison!`); 
-                // Don't alert, just do it. Maybe toast?
-            }
-        } catch (e) {
-            alert("Could not retrieve details for comparison.");
-        }
+        tl.from(".hero-content", { y: 30, opacity: 0, duration: 1, stagger: 0.1 })
+            .from(".hero-widgets-container", { x: 40, opacity: 0, duration: 0.8 }, "-=0.6");
+
+        gsap.from(".trending-card", {
+            scrollTrigger: { trigger: trendingRef.current, start: "top 80%" },
+            y: 40, opacity: 0, duration: 0.6, stagger: 0.1
+        });
+    }, { scope: containerRef });
+
+    const handleSearchClick = (query) => {
+        navigate('/analyze', { state: { query } });
     };
 
     return (
-        <div className="min-h-full pb-20 flex flex-col gap-12">
-            {/* Hero Section */}
-            <section className="relative overflow-hidden pt-10 px-4 md:px-0">
-                <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-                    <div>
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-elevated border border-border text-sm font-bold text-brand-primary mb-8 shadow-sm"
-                        >
-                            <Sparkles className="h-4 w-4" />
-                            Terra Truce Intelligence Platform
-                        </motion.div>
+        <div ref={containerRef} className="bg-background text-text-primary overflow-x-hidden font-sans">
 
-                        <h1 className="text-5xl md:text-6xl font-black text-text-primary tracking-tight mb-6 leading-tight">
-                            Advanced Property <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">Risk Analysis</span>
+            {/* Hero Section */}
+            <div ref={heroRef} className="relative pt-32 pb-20 px-6 lg:px-12 overflow-hidden min-h-[90vh] flex items-center">
+                {/* Background Blobs - Improved Colors */}
+                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] -translate-y-1/4 translate-x-1/4 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-brand-secondary/5 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
+                <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-brand-accent/5 rounded-full blur-[90px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+
+                <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10 w-full">
+
+                    {/* Left: Content */}
+                    <div className="space-y-8 pt-4">
+                        <div className="hero-content inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-elevated border border-brand-primary/20 text-brand-primary text-xs font-bold uppercase tracking-wider shadow-sm">
+                            <Shield className="h-3 w-3" />
+                            AI-Powered Real Estate Intelligence
+                        </div>
+
+                        <h1 className="hero-content text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] text-brand-primary">
+                            Invest with <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent">
+                                Absolute Confidence.
+                            </span>
                         </h1>
 
-                        <p className="text-lg text-text-secondary mb-8 leading-relaxed max-w-lg">
-                            Leveraging AI, Satellite Data, and Government Records to provide the most comprehensive 10-point risk assessment available.
+                        <p className="hero-content text-xl text-text-secondary max-w-lg leading-relaxed font-medium">
+                            Stop guessing. Start analyzing. Get instant risk reports, valuation forecasts, and legal insights for any property in India.
                         </p>
 
-                        <div className="flex flex-wrap gap-4">
-                            <Link
-                                to="/analyze"
-                                className="bg-text-primary text-background hover:bg-brand-primary px-8 py-4 rounded-xl font-bold flex items-center gap-2 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
-                            >
-                                <Search className="h-5 w-5" />
-                                Start Analysis
+                        <div className="hero-content flex flex-wrap gap-4">
+                            <Link to="/analyze" className="px-8 py-4 bg-brand-primary text-white rounded-2xl font-bold hover:bg-brand-primary/90 hover:scale-105 transition-all shadow-xl shadow-brand-primary/20 flex items-center gap-2">
+                                Start Free Analysis <ArrowRight className="h-5 w-5" />
+                            </Link>
+                            <Link to="/market" className="px-8 py-4 bg-white border-2 border-border text-brand-primary rounded-2xl font-bold hover:border-brand-primary hover:bg-brand-primary/5 transition-all flex items-center gap-2">
+                                <Calculator className="h-5 w-5" /> ROI Calculator
                             </Link>
                         </div>
+
+                        {/* Recent Activity Mini-Panel */}
+                        {(recentSearches.length > 0) && (
+                            <div className="hero-content mt-8 p-4 bg-white/60 backdrop-blur border border-white/50 rounded-2xl shadow-sm max-w-md">
+                                <h3 className="text-xs font-bold text-text-secondary uppercase mb-3 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" /> Recent Activity
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {recentSearches.map((item, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleSearchClick(item.location_name)}
+                                            className="text-xs px-3 py-1.5 bg-white border border-border rounded-lg hover:border-brand-primary hover:text-brand-primary transition-colors text-text-primary truncate max-w-[120px]"
+                                        >
+                                            {item.location_name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Search Data Panel */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="bg-surface border border-border rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col h-[500px]"
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                            <MapPin className="h-48 w-48 rotate-12" />
+                    {/* Right: Interactive Command Center */}
+                    <div className="hero-widgets-container hidden lg:flex items-center justify-center relative">
+                        {/* Card Stack Effect */}
+                        <div className="absolute top-4 -right-4 w-full h-full bg-brand-primary/5 rounded-3xl -z-10 rotate-3 transition-transform duration-500 hover:rotate-6"></div>
+                        <div className="absolute top-8 -right-8 w-full h-full bg-brand-secondary/5 rounded-3xl -z-20 rotate-6 transition-transform duration-500 hover:rotate-12"></div>
+
+                        <CommandCenter hotSearches={hotSearches} onSearch={handleSearchClick} />
+
+                        {/* Floating Badge */}
+                        <div className="absolute -left-12 bottom-12 p-4 bg-surface border border-border rounded-2xl shadow-xl animate-blob">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                                    <TrendingUp className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-text-secondary uppercase">Market Growth</div>
+                                    <div className="text-lg font-black text-text-primary">+14.2%</div>
+                                </div>
+                            </div>
                         </div>
-
-                        {/* Tabs */}
-                        <div className="flex items-center gap-2 p-1 bg-surface-elevated rounded-xl mb-6 relative z-10 shrink-0">
-                            <button
-                                onClick={() => setActiveTab('global')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'global' ? 'bg-brand-primary text-white shadow-md' : 'text-text-secondary hover:bg-surface'}`}
-                            >
-                                <Globe className="h-4 w-4" />
-                                Live Feed
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('mine')}
-                                disabled={!user}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'mine' ? 'bg-brand-primary text-white shadow-md' : 'text-text-secondary hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed'}`}
-                                title={!user ? "Login to view history" : ""}
-                            >
-                                <User className="h-4 w-4" />
-                                My History
-                            </button>
-                        </div>
-
-                        <div className="relative z-10 flex-1 overflow-auto custom-scrollbar pr-2">
-                            {activeTab === 'global' ? (
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key="global"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className="space-y-6"
-                                    >
-                                        <div>
-                                            <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center gap-2 sticky top-0 bg-surface py-2 z-10">
-                                                <Clock className="h-3 w-3" />
-                                                Recent Activity
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {recentSearches.map((s, i) => (
-                                                    <SearchItem key={s.id || i} item={s} />
-                                                ))}
-                                                {recentSearches.length === 0 && !globalLoading && <div className="text-xs text-text-secondary italic">No recent searches yet.</div>}
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-6 border-t border-border">
-                                            <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center gap-2 sticky top-0 bg-surface py-2 z-10">
-                                                <Flame className="h-3 w-3" />
-                                                Trending Now
-                                            </h3>
-                                            <div className="grid grid-cols-1 gap-3">
-                                                {popularSearches.map((s, i) => (
-                                                    <SearchItem key={i} item={s} popular />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                </AnimatePresence>
-                            ) : (
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key="mine"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className="space-y-3"
-                                    >
-                                        <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center gap-2 sticky top-0 bg-surface py-2 z-10">
-                                            <User className="h-3 w-3" />
-                                            Your Search History
-                                        </h3>
-                                        {myHistory.length > 0 ? (
-                                            myHistory.map((item) => (
-                                                <SearchItem
-                                                    key={item.id}
-                                                    item={item}
-                                                    isHistory
-                                                    onDelete={handleDelete}
-                                                    onCompare={handleCompare}
-                                                />
-                                            ))
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center py-10 text-center">
-                                                <div className="p-3 bg-surface-elevated rounded-full mb-3">
-                                                    <Search className="h-6 w-6 text-text-secondary" />
-                                                </div>
-                                                <p className="text-sm font-medium text-text-primary">No history yet</p>
-                                                <p className="text-xs text-text-secondary mt-1">Run an analysis to save it here</p>
-                                                <Link to="/analyze" className="mt-4 text-xs font-bold text-brand-primary hover:underline">
-                                                    Start Analyzing
-                                                </Link>
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                </AnimatePresence>
-                            )}
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Detailed Project Breakdown */}
-            <section className="bg-surface border-y border-border py-20 px-6">
-                <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl font-black text-text-primary mb-4">Comprehensive Risk Intelligence</h2>
-                        <p className="text-text-secondary max-w-2xl mx-auto">
-                            Our platform aggregates data from over 10 distinct sources to compute a weighted risk score.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <FeatureCard
-                            icon={Shield}
-                            title="Safety & Crime"
-                            desc="Real-time precinct data analysis covering violent crime, property theft, and emergency response times for the exact neighborhood."
-                            delay={0.1}
-                        />
-                        <FeatureCard
-                            icon={AlertTriangle}
-                            title="Environmental"
-                            desc="FEMA-grade flood mapping, air quality indexing (AQI), and proximity to industrial hazards or superfund sites."
-                            delay={0.2}
-                        />
-                        <FeatureCard
-                            icon={TrendingUp}
-                            title="Economic Growth"
-                            desc="Predictive modeling on property value appreciation, gentrification indicators, and local business development."
-                            delay={0.3}
-                        />
-                        <FeatureCard
-                            icon={MapPin}
-                            title="Lifestyle & Amenities"
-                            desc="Walk-score calculation including distance to top-rated schools, hospitals, grocery stores, and public transit."
-                            delay={0.4}
-                        />
-                        <FeatureCard
-                            icon={Layers}
-                            title="Comparative Logic"
-                            desc="Side-by-side analysis allowing you to weigh pros and cons of multiple properties directly against each other."
-                            delay={0.5}
-                        />
-                        <FeatureCard
-                            icon={Info}
-                            title="Legal & Zoning"
-                            desc="Jurisdiction-specific tenant rights, zoning restrictions, and short-term rental regulations."
-                            delay={0.6}
-                        />
                     </div>
                 </div>
-            </section>
+            </div>
+
+            {/* Hot Searches Section */}
+            <div ref={trendingRef} className="py-16 bg-surface-elevated/50 border-y border-border">
+                <div className="container mx-auto px-6">
+                    <div className="flex items-center justify-between mb-10">
+                        <div>
+                            <h2 className="text-2xl font-bold text-text-primary flex items-center gap-2">
+                                <Flame className="h-6 w-6 text-brand-accent fill-brand-accent" />
+                                Trending in {userState || "Your Area"}
+                            </h2>
+                            <p className="text-sm text-text-secondary mt-1">Properties with high search volume today.</p>
+                        </div>
+                        <button className="text-sm font-bold text-brand-primary flex items-center gap-1 hover:gap-2 transition-all">
+                            Global Heatmap <ChevronRight className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {hotSearches.map((item, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => handleSearchClick(item.name)}
+                                className="trending-card group relative p-5 bg-surface border border-border rounded-2xl hover:border-brand-primary/50 hover:shadow-lg transition-all text-left"
+                            >
+                                <div className="absolute top-4 right-4 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100 dark:bg-green-900/30 dark:border-green-800">
+                                    {item.growth}
+                                </div>
+                                <div className="p-2 w-fit bg-brand-primary/5 rounded-xl text-brand-primary mb-3 group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                                    <MapPin className="h-5 w-5" />
+                                </div>
+                                <h3 className="font-bold text-text-primary group-hover:text-brand-primary transition-colors">{item.name}</h3>
+                                <p className="text-xs text-text-secondary mt-1">Very High Demand</p>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Features (Interactive) */}
+            <div className="py-24 px-6 container mx-auto">
+                <div className="text-center mb-16 max-w-2xl mx-auto">
+                    <h2 className="text-3xl font-bold mb-4 text-brand-primary">Everything you need to invest safely</h2>
+                    <p className="text-text-secondary">Comprehensive tools to analyze location, value, and potential legal pitfalls before you sign.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <InteractiveFeatureCard
+                        icon={Search}
+                        title="Smart Search"
+                        desc="Find specific plots with AI-powered filtering and real listings."
+                        type="search"
+                        delay=""
+                    />
+                    <InteractiveFeatureCard
+                        icon={Shield}
+                        title="Risk Analysis"
+                        desc="Assess flood, crime, and environmental risks instantly."
+                        type="risk"
+                        delay="2"
+                    />
+                    <InteractiveFeatureCard
+                        icon={Calculator}
+                        title="ROI Calculator"
+                        desc="Project cash flow and appreciation for 5 years."
+                        type="calc"
+                        delay="2"
+                    />
+                </div>
+            </div>
         </div>
     );
 };

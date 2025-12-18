@@ -1,10 +1,12 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Activity, Globe, Shield, Sun, Moon, LogOut, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, Activity, Globe, Shield, Sun, Moon, LogOut, User, Calculator, Clock, ArrowRightLeft, TrendingUp, Search } from 'lucide-react';
+import { supabase } from '../../services/supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import Chatbot from '../Chat/Chatbot';
+// ... imports
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
     <Link
@@ -24,14 +26,24 @@ const DashboardLayout = ({ children }) => {
     const { theme, toggleTheme } = useTheme();
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const [history, setHistory] = useState([]);
+
+    useEffect(() => {
+        if (user) {
+            const fetchHistory = async () => {
+                const { data } = await supabase
+                    .from('search_history')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+                if (data) setHistory(data);
+            };
+            fetchHistory();
+        }
+    }, [user, location.pathname]); // Refresh on nav change in case new search added
 
     const handleLogout = async () => {
-        try {
-            await signOut();
-            navigate('/login');
-        } catch (error) {
-            console.error('Error signing out:', error);
-        }
+        // ...
     };
 
     return (
@@ -54,7 +66,7 @@ const DashboardLayout = ({ children }) => {
                 </div>
 
                 {/* Navigation */}
-                <div className="flex-1 py-6 px-3 space-y-2">
+                <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto custom-scrollbar">
                     <div className="px-4 mb-2 text-xs font-bold text-text-secondary uppercase tracking-widest">Analytics</div>
                     <SidebarItem
                         icon={LayoutDashboard}
@@ -69,11 +81,49 @@ const DashboardLayout = ({ children }) => {
                         active={location.pathname === '/analyze'}
                     />
                     <SidebarItem
-                        icon={Globe}
-                        label="Market Intel"
+                        icon={Calculator}
+                        label="Investment Calc"
                         to="/market"
                         active={location.pathname === '/market'}
                     />
+
+                    {/* Recent History Section - Requested Feature */}
+                    {history.length > 0 && (
+                        <div className="mt-8">
+                            <div className="px-4 mb-2 text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                <Clock className="h-3 w-3" /> Recent History
+                            </div>
+                            <div className="space-y-1">
+                                {history.map((item, idx) => (
+                                    <div key={idx} className="group relative px-4 py-2 hover:bg-surface-elevated rounded-lg transition-colors flex items-center justify-between">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-brand-secondary shrink-0" />
+                                            <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors max-w-[100px]" title={item.location_name}>
+                                                {item.location_name}
+                                            </span>
+                                        </div>
+                                        {/* Quick Actions (Show on Hover) */}
+                                        <div className="hidden group-hover:flex items-center gap-1">
+                                            <button
+                                                onClick={() => navigate('/analyze', { state: { query: item.location_name, compare: true } })}
+                                                className="p-1 hover:text-brand-primary transition-colors"
+                                                title="Compare / Analyze"
+                                            >
+                                                <Search className="h-3 w-3" />
+                                            </button>
+                                            <button
+                                                onClick={() => navigate('/market', { state: { location: item.location_name, riskScore: 50 } })} // Assuming 50 default if risk unknown
+                                                className="p-1 hover:text-brand-accent transition-colors"
+                                                title="Calculate ROI"
+                                            >
+                                                <Calculator className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* User Profile / Footer */}
@@ -123,7 +173,8 @@ const DashboardLayout = ({ children }) => {
                     <div className="flex items-center gap-4">
                         <h2 className="text-lg font-bold text-text-primary">
                             {location.pathname === '/' ? 'Executive Overview' :
-                                location.pathname === '/analyze' ? 'Risk Intelligence Dashboard' : 'Dashboard'}
+                                location.pathname === '/analyze' ? 'Risk Intelligence Dashboard' :
+                                    location.pathname === '/market' ? 'Investment ROI Calculator' : 'Dashboard'}
                         </h2>
                         <div className="h-4 w-px bg-border"></div>
                         <span className="text-xs text-brand-primary font-medium px-2 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20">

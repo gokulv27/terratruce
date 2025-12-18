@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GraduationCap, Hospital, ShoppingBag, Trees, Star, MapPin, ChevronDown, ChevronUp, Award } from 'lucide-react';
+import { staggerList } from '../../utils/designUtils';
 
 /**
  * Facilities Display Component
@@ -8,6 +9,13 @@ import { GraduationCap, Hospital, ShoppingBag, Trees, Star, MapPin, ChevronDown,
  */
 const FacilitiesDisplay = ({ amenities }) => {
     const [expandedCategory, setExpandedCategory] = useState(null);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            staggerList(containerRef.current.children, 0.2);
+        }
+    }, [amenities]);
 
     if (!amenities || !amenities.nearby) return null;
 
@@ -98,7 +106,7 @@ const FacilitiesDisplay = ({ amenities }) => {
     };
 
     return (
-        <div className="space-y-4">
+        <div ref={containerRef} className="space-y-4">
             {amenities.nearby.map((category, idx) => {
                 const Icon = getIcon(category.type);
                 const colors = getColorScheme(category.type);

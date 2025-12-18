@@ -63,6 +63,37 @@ export const geocodeAddress = async (address) => {
 };
 
 /**
+ * Get location suggestions for autocomplete
+ * @param {string} query - The search text
+ * @returns {Promise<Array>} List of suggestions
+ */
+export const getSuggestions = async (query) => {
+  if (!query || query.length < 3) return [];
+
+  try {
+    // Add fuzzy=1 to allow for typos
+    const response = await fetch(
+      `${OPENCAGE_BASE_URL}?q=${encodeURIComponent(query)}&key=${OPENCAGE_API_KEY}&limit=5&no_annotations=1`
+    );
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    if (!data.results) return [];
+
+    return data.results.map(r => ({
+      label: r.formatted,
+      components: r.components,
+      geometry: r.geometry,
+      bounds: r.bounds
+    }));
+  } catch (error) {
+    console.error('Suggestion error:', error);
+    return [];
+  }
+};
+
+/**
  * Reverse geocode coordinates to get address
  * @param {number} lat - Latitude
  * @param {number} lng - Longitude
@@ -102,13 +133,13 @@ export const reverseGeocode = async (lat, lng) => {
  */
 export const getLocationContext = async (address) => {
   const locationData = await geocodeAddress(address);
-  
+
   if (!locationData) {
     return `Location: ${address}`;
   }
 
   const { location_details, metadata } = locationData;
-  
+
   return `
 Location: ${locationData.formatted_address}
 Country: ${location_details.country} (${location_details.country_code})

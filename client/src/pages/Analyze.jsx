@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation as useRouterLocation } from 'react-router-dom';
 import MapView from '../components/Map/MapView';
 import LocationSearch from '../components/Search/LocationSearch';
 import RiskGauge from '../components/Insights/RiskGauge';
@@ -16,6 +17,7 @@ import { useComparison } from '../context/ComparisonContext';
 import { Activity, AlertTriangle, TrendingUp, Map as MapIcon, Maximize2, PlusCircle, ArrowRightLeft, Search, FileText, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useAnalysis } from '../context/AnalysisContext';
 
 // Dashboard Card Wrapper
 const DashboardCard = ({ title, icon: Icon, children, className = "", fullHeight = false }) => (
@@ -40,25 +42,67 @@ const DashboardCard = ({ title, icon: Icon, children, className = "", fullHeight
 
 const Analyze = () => {
     const { user } = useAuth();
+    const routerLocation = useRouterLocation(); // Hook for router state
     const [loading, setLoading] = useState(false);
     const [scanning, setScanning] = useState(false);
     const [location, setLocation] = useState('');
     const [mapLocation, setMapLocation] = useState({ lat: 40.7128, lng: -74.0060 }); // Default NYC
     const [riskData, setRiskData] = useState(null);
     const [showInsights, setShowInsights] = useState(false);
+    const [history, setHistory] = useState([]);
     const { addToCompare, toggleCompareVisibility, comparedProperties } = useComparison();
+    const { updateAnalysis, triggerChat } = useAnalysis();
     const fileInputRef = useRef(null);
 
-    const saveSearchHistory = async (locationName) => {
+    // Sync context for Chatbot
+    useEffect(() => {
+        updateAnalysis({ location, riskData, loading });
+    }, [location, riskData, loading]);
+
+    // Handle Hot Search Navigation (Auto-Analyze)
+    useEffect(() => {
+        if (routerLocation.state?.query && !riskData) {
+            handleAnalyze(routerLocation.state.query);
+        }
+    }, [routerLocation.state]);
+
+    // Fetch History on Mount/User Change
+    useEffect(() => {
+        if (user) {
+            const fetchHistory = async () => {
+                const { data, error } = await supabase
+                    .from('search_history')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (error) {
+                    console.error("Supabase History Error:", error);
+                } else if (data) {
+                    setHistory(data);
+                }
+            };
+            fetchHistory();
+        }
+    }, [user]);
+
+    const saveSearchHistory = async (locationName, riskScore = null) => {
         if (!locationName || !user) return;
         try {
-            // Check if we just saved this (prevent duplicates on double-fire)
-            // or just let Supabase handle rate limits? 
-            // Simple approach: Just Insert.
+            // Attempt to save with risk_score for smarter history
             await supabase.from('search_history').insert([{
                 location_name: locationName,
-                user_id: user.id
+                user_id: user.id,
+                risk_score: riskScore
             }]);
+
+            // Refresh local history
+            const { data } = await supabase
+                .from('search_history')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(10);
+            if (data) setHistory(data);
         } catch (err) {
             console.error("Error tracking search:", err);
         }
@@ -73,9 +117,6 @@ const Analyze = () => {
             setMapLocation(coordinates);
         }
 
-        // Save History
-        await saveSearchHistory(locationName);
-
         const data = await analyzePropertyRisk(locationName);
         if (data) {
             setRiskData(data);
@@ -83,6 +124,8 @@ const Analyze = () => {
             if (data.location_info?.coordinates) {
                 setMapLocation(data.location_info.coordinates);
             }
+            // Save History with Risk Score
+            await saveSearchHistory(locationName, data.overall_risk_score);
         }
         setLoading(false);
     };
@@ -91,9 +134,8 @@ const Analyze = () => {
         if (!searchLocation) return;
         setLoading(true);
         setShowInsights(true);
-
-        // Save History (Logic Added)
-        await saveSearchHistory(searchLocation);
+        // Force update location state if triggered via hot search
+        setLocation(searchLocation);
 
         const data = await analyzePropertyRisk(searchLocation);
         if (data) {
@@ -101,6 +143,8 @@ const Analyze = () => {
             if (data.location_info?.coordinates) {
                 setMapLocation(data.location_info.coordinates);
             }
+            // Save History with Risk Score
+            await saveSearchHistory(searchLocation, data.overall_risk_score);
         }
         setLoading(false);
     };
@@ -195,7 +239,11 @@ const Analyze = () => {
             {/* Top Toolbar */}
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                 <div className="w-full md:w-2/3 lg:w-1/2 relative z-30">
-                    <LocationSearch onLocationSelect={handleLocationSelect} loading={loading} />
+                    <LocationSearch
+                        onSearch={(data) => handleLocationSelect(data.name, { lat: data.lat, lng: data.lng })}
+                        loading={loading}
+                        history={history}
+                    />
                 </div>
                 <div className="flex items-center gap-3">
                     {/* View Comparison Button */}
@@ -286,13 +334,22 @@ const Analyze = () => {
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-bold text-text-primary">Risk Report</h2>
                                 {riskData && (
-                                    <button
-                                        onClick={() => addToCompare(riskData)}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-brand-primary/10 text-brand-primary rounded-lg text-xs font-bold hover:bg-brand-primary hover:text-white transition-all"
-                                    >
-                                        <PlusCircle className="h-3 w-3" />
-                                        Compare
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => triggerChat(`Find top 5 plots for sale in ${location} and rate them based on the risk data.`)}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg text-xs font-bold hover:shadow-lg hover:scale-105 transition-all shadow-md"
+                                        >
+                                            <Sparkles className="h-3 w-3" />
+                                            Give Suggestions
+                                        </button>
+                                        <button
+                                            onClick={() => addToCompare(riskData)}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-brand-primary/10 text-brand-primary rounded-lg text-xs font-bold hover:bg-brand-primary hover:text-white transition-all"
+                                        >
+                                            <PlusCircle className="h-3 w-3" />
+                                            Compare
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 
