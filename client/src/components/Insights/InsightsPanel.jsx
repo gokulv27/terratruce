@@ -278,6 +278,63 @@ const InsightsPanel = ({ data, loading }) => {
                                 <div className="bg-gray-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
                                     <p className="text-xs text-gray-400 mb-1">6-Month Outlook</p>
                                     <p className="text-xs font-semibold text-blue-300">{marketIntel.prediction_6mo}</p>
+            {/* Section 6: Nearby Infrastructure */}
+            <div className="mb-8">
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Nearby Infrastructure</h3>
+                <div className="space-y-6">
+                    {/* Hospitals */}
+                    <div>
+                        <h4 className="text-xs font-bold text-red-600 uppercase mb-3 flex items-center gap-2">
+                            <Siren className="h-4 w-4" /> Nearby Hospitals
+                        </h4>
+                        <div className="grid grid-cols-1 gap-2">
+                            {data.nearby_hospitals?.length > 0 ? data.nearby_hospitals.map((h, i) => (
+                                <div key={i} className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex items-center justify-between">
+                                    <span className="text-sm font-bold text-gray-900">{h.name}</span>
+                                    <span className="text-xs font-medium text-red-600">{h.distance}</span>
+                                </div>
+                            )) : <p className="text-xs text-gray-400 italic">No hospitals identified nearby.</p>}
+                        </div>
+                    </div>
+
+                    {/* Schools */}
+                    <div>
+                        <h4 className="text-xs font-bold text-green-600 uppercase mb-3 flex items-center gap-2">
+                            <Building className="h-4 w-4" /> Nearby Schools
+                        </h4>
+                        <div className="grid grid-cols-1 gap-2">
+                            {data.nearby_schools?.length > 0 ? data.nearby_schools.map((s, i) => (
+                                <div key={i} className="bg-green-50/50 p-3 rounded-xl border border-green-100 flex items-center justify-between">
+                                    <span className="text-sm font-bold text-gray-900">{s.name}</span>
+                                    <span className="text-xs font-medium text-green-600">{s.distance}</span>
+                                </div>
+                            )) : <p className="text-xs text-gray-400 italic">No schools identified nearby.</p>}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Section 7: Recently Posted Properties */}
+            {data.recent_listings && data.recent_listings.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Recently Posted Nearby</h3>
+                    <div className="space-y-3">
+                        {data.recent_listings.map((item, idx) => (
+                            <div key={idx} className="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <Home className="h-4 w-4 text-blue-500" />
+                                            <p className="text-sm font-medium text-gray-900 line-clamp-1">{item.address}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 ml-5">
+                                            <p className="text-xs text-gray-500">{item.type}</p>
+                                            {item.date && (
+                                                <span className="text-xs text-gray-400">• {item.date}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <span className="text-sm font-bold text-primary whitespace-nowrap bg-blue-50 text-blue-700 px-2 py-1 rounded-md">{item.price}</span>
                                 </div>
                             )}
                             {marketIntel.prediction_1yr && (
@@ -301,6 +358,19 @@ const InsightsPanel = ({ data, loading }) => {
                     </div>
                 </div>
             )}
+            {/* Section 8: Safety & Accuracy Disclaimer */}
+            <div className="mt-8 p-4 bg-slate-100 rounded-xl border border-slate-200 flex items-start gap-3">
+                <AlertTriangle className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+                <div className="flex flex-col gap-1">
+                    <p className="text-[10px] font-bold text-slate-700 uppercase">AI Safety Notice</p>
+                    <p className="text-[10px] text-slate-500 leading-normal">
+                        This risk assessment is automatically generated by AI and is intended for informational purposes only. It does not constitute a legal guarantee, engineering certification, or professional real estate advice. Always verify critical data points with official government records.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
             {/* Additional sections remain in next part due to length... */}
 

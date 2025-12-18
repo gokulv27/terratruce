@@ -158,6 +158,12 @@ const MapView = ({ location, markers = [], onLocationClick }) => {
                             >
                                 <MapPin className="h-4 w-4 text-white" />
                             </div>
+                        <AdvancedMarker key={index} position={marker.position}>
+                            <Pin
+                                background={marker.color || '#3B82F6'}
+                                borderColor={'#ffffff'}
+                                glyphColor={'#ffffff'}
+                            />
                         </AdvancedMarker>
                     ))}
 
