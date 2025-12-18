@@ -246,6 +246,8 @@ const Home = () => {
         }
     }, [user]);
 
+
+
     // Animations
     useGSAP(() => {
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
@@ -264,7 +266,7 @@ const Home = () => {
     };
 
     return (
-        <div ref={containerRef} className="bg-background text-text-primary overflow-x-hidden font-sans">
+        <div ref={containerRef} className="h-full overflow-y-auto custom-scrollbar bg-background text-text-primary overflow-x-hidden font-sans">
 
             {/* Hero Section */}
             <div ref={heroRef} className="relative pt-32 pb-20 px-6 lg:px-12 overflow-hidden min-h-[90vh] flex items-center">
