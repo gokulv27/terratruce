@@ -35,7 +35,7 @@ const steps = [
     }
 ];
 
-const Tutorial = () => {
+const OnboardingOverlay = () => {
     // FORCE VISIBLE for testing - removed localstorage check and default to TRUE
     const [isVisible, setIsVisible] = useState(true);
     const [currentStep, setCurrentStep] = useState(0);
@@ -181,4 +181,4 @@ const Tutorial = () => {
     );
 };
 
-export default Tutorial;
+export default OnboardingOverlay;
