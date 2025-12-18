@@ -5,18 +5,25 @@
 @layer base {
   :root {
     /* Light Mode - Crisp, Professional, "Fintech" */
-    --background: 249 250 251; /* gray-50 */
-    --surface: 255 255 255; /* white */
+    --background: 249 250 251;
+    /* gray-50 */
+    --surface: 255 255 255;
+    /* white */
     --surface-elevated: 255 255 255;
-    --text-primary: 15 23 42; /* slate-900 */
-    --text-secondary: 71 85 105; /* slate-600 */
-    --border: 226 232 240; /* slate-200 */
-    
+    --text-primary: 15 23 42;
+    /* slate-900 */
+    --text-secondary: 71 85 105;
+    /* slate-600 */
+    --border: 226 232 240;
+    /* slate-200 */
+
     /* Branding - Deep Indigo/Blue */
-    --brand-primary: 79 70 229; /* indigo-600 */
-    --brand-secondary: 67 56 202; /* indigo-700 */
-    --brand-glow: 79 70 229; 
-    
+    --brand-primary: 79 70 229;
+    /* indigo-600 */
+    --brand-secondary: 67 56 202;
+    /* indigo-700 */
+    --brand-glow: 79 70 229;
+
     /* Status */
     --success: 34 197 94;
     --warning: 234 179 8;
@@ -26,16 +33,24 @@
 
   .dark {
     /* Dark Mode - Deep, Rich, "Premium Cyber" */
-    --background: 3 7 18; /* gray-950 (almost black) */
-    --surface: 15 23 42; /* slate-900 */
-    --surface-elevated: 30 41 59; /* slate-800 */
-    --text-primary: 248 250 252; /* slate-50 */
-    --text-secondary: 148 163 184; /* slate-400 */
-    --border: 30 41 59; /* slate-800 */
+    --background: 3 7 18;
+    /* gray-950 (almost black) */
+    --surface: 15 23 42;
+    /* slate-900 */
+    --surface-elevated: 30 41 59;
+    /* slate-800 */
+    --text-primary: 248 250 252;
+    /* slate-50 */
+    --text-secondary: 148 163 184;
+    /* slate-400 */
+    --border: 30 41 59;
+    /* slate-800 */
 
     /* Branding - Vivid Violet/Pink for pop against dark */
-    --brand-primary: 168 85 247; /* purple-500 */
-    --brand-secondary: 236 72 153; /* pink-500 */
+    --brand-primary: 168 85 247;
+    /* purple-500 */
+    --brand-secondary: 236 72 153;
+    /* pink-500 */
     --brand-glow: 168 85 247;
   }
 
@@ -45,13 +60,13 @@
 }
 
 @layer utilities {
-    .bg-glass {
-        @apply bg-surface/70 backdrop-blur-xl border border-white/10 dark:border-white/5;
-    }
-    
-    .text-gradient {
-        @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-brand-secondary;
-    }
+  .bg-glass {
+    @apply bg-surface/70 backdrop-blur-xl border border-white/10 dark:border-white/5;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-brand-secondary;
+  }
 }
 
 @layer utilities {
@@ -119,5 +134,27 @@
 
   .animation-delay-2000 {
     animation-delay: 2s;
+  }
+}
+
+/* Custom Webkit Scrollbar */
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full hover:bg-text-secondary/50 transition-colors;
+  }
+
+  /* For Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
 }
