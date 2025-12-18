@@ -27,8 +27,11 @@ const MapView = ({ location = { lat: 51.505, lng: -0.09 }, markers = [] }) => {
                 >
                     {markers.map((marker, index) => (
                         <AdvancedMarker key={index} position={marker.position}>
-                            {/* Custom colored pin based on risk */}
-                            <Pin background={marker.color} borderColor={'#ffffff'} glyphColor={'#ffffff'} />
+                            <Pin
+                                background={marker.color || '#3B82F6'}
+                                borderColor={'#ffffff'}
+                                glyphColor={'#ffffff'}
+                            />
                         </AdvancedMarker>
                     ))}
                 </Map>

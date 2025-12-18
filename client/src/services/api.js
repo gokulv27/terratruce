@@ -1,5 +1,47 @@
 const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
 
+/**
+ * Extracts a property address from raw OCR text using Perplexity.
+ */
+export const extractAddressFromOCR = async (text) => {
+  const prompt = `
+    Extract the primary property address from the following OCR text. 
+    If multiple addresses are found, pick the one that seems to be the subject of the document (e.g., the property being sold or leased).
+    
+    Return ONLY the address string. No other text.
+    If no address is found, return "No address found".
+
+    Document Text:
+    """
+    ${text}
+    """
+  `;
+
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: "sonar-pro",
+        messages: [
+          { role: "system", content: "You are a precise extraction assistant. Output only the requested address or 'No address found'." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.1
+      })
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("Error extracting address:", error);
+    return "No address found";
+  }
+};
+
 export const analyzePropertyRisk = async (location) => {
   const prompt = `
     Act as a real estate risk analyst. 
@@ -13,38 +55,21 @@ export const analyzePropertyRisk = async (location) => {
       "flood_risk_score": number (0-100),
       "crime_score": number (0-100),
       "air_quality_score": number (0-100),
-      "air_quality_text": "Short description (e.g., 'Good', 'Moderate')",
+      "air_quality_text": "Short description",
       "solar_potential": "Excellent" | "Good" | "Fair" | "Poor",
-      "weather_summary": "Short annual weather summary (e.g., 'Sunny with mild winters')",
+      "weather_summary": "Short annual summary",
       "transport_score": number (0-100),
       "amenities_score": number (0-100),
       "neighbourhood_score": number (0-100),
       "growth_potential_score": number (0-100),
       "market_trend": "Up" | "Down" | "Stable",
-      "ai_summary": "1-2 sentence insights about risks and future value.",
-      "coordinates": { "lat": number, "lng": number } (Approximate lat/lng for this location),
-      "news": [
-        { 
-            "headline": "Headline",
-            "summary": "One sentence summary",
-            "date": "Relative date (e.g. '2 days ago')",
-            "source": "Source Name"
-        }
-      ],
-      "recent_listings": [
-        { 
-          "address": "Address", 
-          "price": "₹Price (in INR)", 
-          "type": "Apartment/House",
-          "date": "Date posting (e.g. '2 days ago')",
-          "coordinates": { "lat": number, "lng": number }
-        }
-      ]
+      "ai_summary": "1-2 sentence insights",
+      "coordinates": { "lat": number, "lng": number },
+      "news": [{ "headline": "Headline", "summary": "Summary", "date": "Date", "source": "Source" }],
+      "recent_listings": [{ "address": "Address", "price": "₹Price", "type": "Type", "date": "Date", "coordinates": { "lat": number, "lng": number } }],
+      "nearby_hospitals": [{ "name": "Hospital Name", "coordinates": { "lat": number, "lng": number }, "distance": "distance in km" }],
+      "nearby_schools": [{ "name": "School Name", "coordinates": { "lat": number, "lng": number }, "distance": "distance in km" }]
     }
-    
-    IMPORTANT: 
-    1. For "recent_listings", ONLY include listings from the **last 30 days**.
-    2. Prices MUST be in **Indian Rupees (INR)** formatted like "₹1.5 Cr" or "₹85 Lacs".
   `;
 
   try {
@@ -81,18 +106,6 @@ export const analyzePropertyRisk = async (location) => {
     return JSON.parse(content);
   } catch (error) {
     console.error("Error analyzing property:", error);
-    console.log("Using Mock Data due to API Error");
-    // Return mock data fallback if API fails
-    return {
-      overall_score: 75,
-      buying_risk: "High",
-      renting_risk: "Medium",
-      flood_risk_score: 65,
-      crime_score: 58,
-      market_trend: "Up",
-      ai_summary: "Error fetching live data. Showing fallback estimates.",
-      news: ["Keep an eye on interest rates."],
-      recent_listings: []
-    };
+    return null;
   }
 };

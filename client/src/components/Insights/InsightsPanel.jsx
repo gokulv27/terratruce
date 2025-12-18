@@ -151,10 +151,46 @@ const InsightsPanel = ({ data, loading }) => {
                 </div>
             )}
 
-            {/* Section 6: Recently Posted Properties */}
+            {/* Section 6: Nearby Infrastructure */}
+            <div className="mb-8">
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Nearby Infrastructure</h3>
+                <div className="space-y-6">
+                    {/* Hospitals */}
+                    <div>
+                        <h4 className="text-xs font-bold text-red-600 uppercase mb-3 flex items-center gap-2">
+                            <Siren className="h-4 w-4" /> Nearby Hospitals
+                        </h4>
+                        <div className="grid grid-cols-1 gap-2">
+                            {data.nearby_hospitals?.length > 0 ? data.nearby_hospitals.map((h, i) => (
+                                <div key={i} className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex items-center justify-between">
+                                    <span className="text-sm font-bold text-gray-900">{h.name}</span>
+                                    <span className="text-xs font-medium text-red-600">{h.distance}</span>
+                                </div>
+                            )) : <p className="text-xs text-gray-400 italic">No hospitals identified nearby.</p>}
+                        </div>
+                    </div>
+
+                    {/* Schools */}
+                    <div>
+                        <h4 className="text-xs font-bold text-green-600 uppercase mb-3 flex items-center gap-2">
+                            <Building className="h-4 w-4" /> Nearby Schools
+                        </h4>
+                        <div className="grid grid-cols-1 gap-2">
+                            {data.nearby_schools?.length > 0 ? data.nearby_schools.map((s, i) => (
+                                <div key={i} className="bg-green-50/50 p-3 rounded-xl border border-green-100 flex items-center justify-between">
+                                    <span className="text-sm font-bold text-gray-900">{s.name}</span>
+                                    <span className="text-xs font-medium text-green-600">{s.distance}</span>
+                                </div>
+                            )) : <p className="text-xs text-gray-400 italic">No schools identified nearby.</p>}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Section 7: Recently Posted Properties */}
             {data.recent_listings && data.recent_listings.length > 0 && (
                 <div>
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Recenty Posted Nearby</h3>
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Recently Posted Nearby</h3>
                     <div className="space-y-3">
                         {data.recent_listings.map((item, idx) => (
                             <div key={idx} className="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
