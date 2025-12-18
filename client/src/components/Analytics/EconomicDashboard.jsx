@@ -1,5 +1,6 @@
-import React from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Briefcase, Globe, Scale as ScaleIcon, AlertCircle, Activity } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { TrendingUp, TrendingDown, DollarSign, Briefcase, Globe, Scale as ScaleIcon, AlertCircle, Activity, Info } from 'lucide-react';
+import { fadeIn, hoverScale } from '../../utils/designUtils';
 
 /**
  * Premium Economic Dashboard Component
@@ -7,6 +8,14 @@ import { TrendingUp, TrendingDown, DollarSign, Briefcase, Globe, Scale as ScaleI
  * with advanced visualizations
  */
 const EconomicDashboard = ({ data }) => {
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            fadeIn(containerRef.current, 0.2);
+        }
+    }, [data]);
+
     if (!data) return null;
 
     const politicalStability = data.risk_analysis?.political_stability;
@@ -40,10 +49,13 @@ const EconomicDashboard = ({ data }) => {
     };
 
     return (
-        <div className="space-y-6">
+        <div ref={containerRef} className="space-y-6">
             {/* Political Stability Section */}
             {politicalStability && (
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border-2 border-purple-200 shadow-xl dark:from-purple-900/20 dark:via-purple-900/10 dark:to-background dark:border-purple-500/30">
+                <div
+                    onMouseEnter={(e) => hoverScale(e.currentTarget)}
+                    className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border-2 border-purple-200 shadow-xl dark:from-purple-900/20 dark:via-purple-900/10 dark:to-background dark:border-purple-500/30"
+                >
                     {/* Header with Score */}
                     <div className="p-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10 backdrop-blur-sm dark:bg-purple-900/20">
                         <div className="flex items-center justify-between mb-4">
@@ -123,7 +135,10 @@ const EconomicDashboard = ({ data }) => {
 
             {/* Economic & Trade Analysis */}
             {tradeEconomy && (
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 border-2 border-blue-200 shadow-xl dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-background dark:border-blue-500/30">
+                <div
+                    onMouseEnter={(e) => hoverScale(e.currentTarget)}
+                    className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 border-2 border-blue-200 shadow-xl dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-background dark:border-blue-500/30"
+                >
                     {/* Header */}
                     <div className="p-6 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 backdrop-blur-sm dark:bg-blue-900/20">
                         <div className="flex items-center gap-3 mb-4">
@@ -238,6 +253,26 @@ const EconomicDashboard = ({ data }) => {
                     </div>
                 </div>
             )}
+
+            {/* Aesthetic Legend */}
+            <div className="flex flex-wrap items-center justify-center gap-6 p-4 bg-surface-elevated/50 rounded-xl border border-border/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+                    <Info className="h-3.5 w-3.5" />
+                    <span>Economic Guide:</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                    <span className="text-xs text-text-secondary">Strong/Stable</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
+                    <span className="text-xs text-text-secondary">Good/Growing</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]" />
+                    <span className="text-xs text-text-secondary">Moderate</span>
+                </div>
+            </div>
         </div>
     );
 };

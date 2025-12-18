@@ -507,3 +507,81 @@ function getFallbackData(location, locationData) {
     }
   };
 }
+
+/**
+ * Send a message to the AI Chatbot (Perplexity)
+ * @param {Array} messages - Chat history [{role: 'user'|'assistant', content: '...'}]
+ * @param {Object} context - Current application context (location, risk data)
+ * @returns {Promise<string>} - The AI's response
+ */
+export const sendChatMessage = async (messages, context = {}) => {
+  const apiKey = import.meta.env.VITE_PERPLEXITY_API_KEY;
+  if (!apiKey) throw new Error("API key not configured");
+
+  const contextString = `
+    Current Location Context: ${context.location || "Not specified"}.
+    User Geolocation: ${context.userLocation ? `${context.userLocation.lat}, ${context.userLocation.lng}` : "Unknown"}.
+    Risk Data Available: ${!!context.riskSummary}.
+  `;
+
+  const systemPrompt = `You are the Terra Truce Assistant.
+  
+  YOUR GOALS:
+  1. **REAL ESTATE SEARCH**: 
+     - **CRITICAL**: If the user asks to find/search properties but matches no specific location in their query AND 'Current Location Context' is 'Not specified': **YOU MUST ASK** "Where would you like to search?" first. **DO NOT** search for random locations.
+     - If the user implies "around me" or "here", use 'User Geolocation' if available. If not available, ask for their city.
+     - Search for *real active listings* when location is known.
+     - **DO NOT USE BOLDING** (no asterisks **). Keep text clean.
+     - **LINKS**: Provide clickable links using this exact format: [[View Listing on Source]](URL). if specific URL is not found, create a Google Search link: [[Search for <Property Name>]](https://www.google.com/search?q=<Property Name>+real+estate).
+     - **FORMAT**:
+       1. Property Name - Price
+       2. Location & Size
+       3. Risk Rating: (Brief text)
+       4. [[Link Button]](URL)
+       
+  2. **RISK ANALYSIS**: Explain risks simply without markdown bolding.
+  
+  3. **SUGGEST ACTIONS**: Suggest 'Compare Properties' or 'Risk Analysis'.
+  
+  STYLE:
+  - Clean, plain text. No markdown formatting like **bold** or *italics* unless necessary for emphasis (use single *).
+  - Professional but conversational.
+  
+  ${contextString.trim()}`;
+
+  const apiMessages = [
+    { role: "system", content: systemPrompt },
+    ...messages
+  ];
+
+  try {
+    const isProd = import.meta.env.PROD;
+    const url = isProd ? '/api/perplexity' : 'https://api.perplexity.ai/chat/completions';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': isProd ? undefined : `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'sonar-pro',
+        messages: apiMessages,
+        temperature: 0.2,
+        max_tokens: 1000,
+        top_p: 0.9,
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Perplexity API Error: ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Chatbot API Error:", error);
+    return "I'm having trouble connecting to the real estate network right now. Please try again in a moment. Debug: " + error.message;
+  }
+};
