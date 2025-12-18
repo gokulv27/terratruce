@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Chatbot from '../Chat/Chatbot';
 import { useAnalysis } from '../../context/AnalysisContext';
+import Tutorial from '../Onboarding/Tutorial';
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
     <Link
