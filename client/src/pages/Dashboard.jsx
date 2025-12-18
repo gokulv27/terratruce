@@ -106,8 +106,8 @@ const Dashboard = () => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} tickFormatter={(val) => `${displayCurrency}${val}`} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 11, fontWeight: '600' }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 11, fontWeight: '600' }} tickFormatter={(val) => `${displayCurrency}${val}`} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)', background: 'var(--surface)' }}
                                     itemStyle={{ color: 'var(--brand-primary)', fontWeight: 'bold' }}
