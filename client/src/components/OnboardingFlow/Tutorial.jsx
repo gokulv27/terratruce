@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, Check } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const steps = [
     {
@@ -28,20 +29,34 @@ const steps = [
         position: 'right'
     },
     {
-        target: 'h1', // Dashboard Title or similar
+        target: '[href="/dashboard"]',
         title: "Your Dashboard",
         content: "Track your portfolio performance and saved searches here.",
-        position: 'bottom'
+        position: 'right'
     }
 ];
 
-const OnboardingOverlay = () => {
-    // FORCE VISIBLE for testing - removed localstorage check and default to TRUE
-    const [isVisible, setIsVisible] = useState(true);
+const Tutorial = () => {
+    const { user } = useAuth();
+    const [isVisible, setIsVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [styles, setStyles] = useState({});
 
-    // removed useEffect for visibility - just default to true for now
+    useEffect(() => {
+        const checkVisibility = () => {
+            if (!user) {
+                // Guest: Always show
+                setTimeout(() => setIsVisible(true), 1500);
+            } else {
+                // User: Check if seen
+                const hasSeen = localStorage.getItem(`tutorial_seen_${user.id}`);
+                if (!hasSeen) {
+                    setTimeout(() => setIsVisible(true), 1500);
+                }
+            }
+        };
+        checkVisibility();
+    }, [user]);
 
     const updateHighlight = () => {
         const step = steps[currentStep];
@@ -60,19 +75,14 @@ const OnboardingOverlay = () => {
                 height: rect.height
             });
         } else {
-            // FALLBACK: If target not found, default to center screen (like 'body' step)
-            // This prevents the tutorial from breaking or showing a weird hole
             setStyles({});
         }
     };
 
     useEffect(() => {
         if (isVisible) {
-            // Run immediately
             updateHighlight();
-            // And also a slight delay to allow layout shifts
             setTimeout(updateHighlight, 500);
-
             window.addEventListener('resize', updateHighlight);
             return () => window.removeEventListener('resize', updateHighlight);
         }
@@ -88,7 +98,9 @@ const OnboardingOverlay = () => {
 
     const handleClose = () => {
         setIsVisible(false);
-        // localStorage.setItem('onboarding_seen', 'true'); // Disable saving for now so they can see it again
+        if (user) {
+            localStorage.setItem(`tutorial_seen_${user.id}`, 'true');
+        }
     };
 
     if (!isVisible) return null;
@@ -181,4 +193,4 @@ const OnboardingOverlay = () => {
     );
 };
 
-export default OnboardingOverlay;
+export default Tutorial;

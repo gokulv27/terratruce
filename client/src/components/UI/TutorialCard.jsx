@@ -3,7 +3,7 @@ import { X, ChevronRight, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
-const OnboardingTutorial = ({ onComplete }) => {
+const TutorialCard = ({ onComplete }) => {
     const [currentStep, setCurrentStep] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
 
@@ -227,4 +227,4 @@ const getPositionClasses = (position) => {
     }
 };
 
-export default OnboardingTutorial;
+export default TutorialCard;

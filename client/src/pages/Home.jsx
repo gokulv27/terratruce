@@ -145,6 +145,7 @@ const Home = () => {
         detectState();
     }, [analysisState?.userLocation]);
 
+
     // 2. Fetch Recent History
     useEffect(() => {
         if (user) {
@@ -156,6 +157,10 @@ const Home = () => {
         }
     }, [user]);
 
+    const handleSearchClick = (query) => {
+        navigate('/analyze', { state: { query } });
+    };
+
 
 
     // Animations
@@ -164,10 +169,6 @@ const Home = () => {
         tl.from(".hero-content", { y: 30, opacity: 0, duration: 1, stagger: 0.1 })
             .from(".hero-cards > div", { y: 40, opacity: 0, duration: 0.8, stagger: 0.1 }, "-=0.6");
     }, { scope: containerRef });
-
-    const handleSearchClick = (query) => {
-        navigate('/analyze', { state: { query } });
-    };
 
     return (
         <div ref={containerRef} className="h-full overflow-y-auto custom-scrollbar bg-background text-text-primary overflow-x-hidden font-sans">
