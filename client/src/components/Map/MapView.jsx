@@ -32,11 +32,12 @@ const MapView = ({ location, markers = [], onLocationClick }) => {
     };
 
     if (!GOOGLE_MAPS_API_KEY) {
+        console.error("Google Maps API Key is missing!");
         return (
-            <div className="w-full h-full bg-surface-elevated flex items-center justify-center rounded-2xl border border-border">
-                <div className="text-center p-6">
-                    <p className="text-red-500 font-bold mb-2">Google Maps API Key Missing</p>
-                    <p className="text-text-secondary text-sm">Please add VITE_GOOGLE_MAPS_API_KEY to your .env file</p>
+            <div className="w-full h-full min-h-[300px] bg-surface-elevated flex items-center justify-center rounded-2xl border border-border">
+                <div className="text-center p-6 bg-red-500/10 rounded-xl">
+                    <p className="text-red-500 font-bold mb-2">Google Maps Config Error</p>
+                    <p className="text-text-secondary text-sm">VITE_GOOGLE_MAPS_API_KEY missing in .env</p>
                 </div>
             </div>
         );
@@ -54,6 +55,7 @@ const MapView = ({ location, markers = [], onLocationClick }) => {
                     mapId="DEMO_MAP_ID"
                     onClick={handleMapClick}
                     className="w-full h-full"
+                    style={{ width: '100%', height: '100%' }}
                     options={{
                         disableDefaultUI: true,
                         zoomControl: true,

@@ -14,7 +14,7 @@ import InsightsPanel from '../components/Insights/InsightsPanel';
 import { analyzePropertyRisk, extractAddressFromOCR } from '../services/api';
 import { extractTextFromFile, redactPII } from '../services/ocrService';
 import { useComparison } from '../context/ComparisonContext';
-import { Activity, AlertTriangle, TrendingUp, Map as MapIcon, Maximize2, PlusCircle, ArrowRightLeft, Search, FileText, Loader2, Sparkles, Calculator } from 'lucide-react';
+import { Activity, AlertTriangle, TrendingUp, Map as MapIcon, Maximize2, PlusCircle, ArrowRightLeft, Search, FileText, Loader2, Sparkles, Calculator, Navigation } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useAnalysis } from '../context/AnalysisContext';
@@ -183,13 +183,6 @@ const Analyze = () => {
             }
         });
 
-        // Hospitals (Red/Siren)
-        riskData.risk_analysis?.amenities?.nearby?.find(a => a.type === 'Hospitals')?.facilities?.forEach(h => {
-            // Mock coords if not provided by amenities (amenities usually don't have coords in this struct, but if they did...)
-            // Assuming nearby items might imply markers if we had data. 
-            // For now, we'll strip this logic if data doesn't exist, to prevent errors.
-        });
-
         return markers;
     };
 
@@ -256,46 +249,41 @@ const Analyze = () => {
                 </div>
             </div>
 
-            {/* Empty State */}
-            {!riskData && !loading && (
-                <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] text-center p-8 bg-surface/50 rounded-3xl border border-border border-dashed">
-                    <div className="h-20 w-20 bg-gradient-to-br from-brand-primary/20 to-brand-secondary/20 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-brand-primary/10">
-                        <Activity className="h-10 w-10 text-brand-primary" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-text-primary mb-2">Ready to Analyze</h2>
-                    <p className="text-text-secondary max-w-md">
-                        Select a location on the map or search above to generate a comprehensive
-                        <span className="text-brand-primary font-bold"> 10-point risk analysis</span> property report.
-                    </p>
-                    {/* Placeholder Grid */}
-                    <div className="mt-12 w-full max-w-4xl opacity-20 filter grayscale pointer-events-none">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-xl"></div>
-                            <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-xl"></div>
+            {/* Main Content - Always Visible */}
+            <div className="flex-1 flex overflow-hidden relative min-h-[600px]">
+                {/* Map View - Width adjusts based on data */}
+                <div className={`relative z-0 bg-gray-200 dark:bg-gray-800 ${riskData ? 'w-full md:w-[55%]' : 'w-full'}`} style={{ height: '100%' }}>
+                    <MapView
+                        location={mapLocation}
+                        markers={getMarkers()}
+                        onLocationClick={handleMapClick}
+                    />
+
+                    {/* Empty State Overlay */}
+                    {!riskData && !loading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-white/5 backdrop-blur-[2px] z-10 p-4 pointer-events-none">
+                            <div className="bg-white/90 dark:bg-slate-900/90 border border-border p-8 rounded-3xl shadow-2xl max-w-md text-center backdrop-blur-md pointer-events-auto">
+                                <div className="h-16 w-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <MapIcon className="h-8 w-8 text-brand-primary" />
+                                </div>
+                                <h2 className="text-xl font-bold text-text-primary mb-2">Explore the Map</h2>
+                                <p className="text-sm text-text-secondary">
+                                    Click anywhere on the map or use the search bar to generate a <span className="text-brand-primary font-bold">Risk Analysis Report</span>.
+                                </p>
+                            </div>
                         </div>
+                    )}
+
+                    {/* Map Overlay Controls */}
+                    <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-auto z-20">
+                        <button className="p-2 bg-surface/90 text-text-primary rounded-lg hover:bg-brand-primary hover:text-white transition-colors shadow-lg">
+                            <Maximize2 className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
-            )}
 
-            {/* Main Content - Split Screen */}
-            {riskData && (
-                <div className="flex-1 flex overflow-hidden relative">
-                    {/* Map View */}
-                    <div className="w-full md:w-[55%] h-full relative z-0">
-                        <MapView
-                            location={mapLocation}
-                            markers={getMarkers()}
-                            onLocationClick={handleMapClick}
-                        />
-                        {/* Map Overlay Controls */}
-                        <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-auto">
-                            <button className="p-2 bg-surface/90 text-text-primary rounded-lg hover:bg-brand-primary hover:text-white transition-colors shadow-lg">
-                                <Maximize2 className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Property Insights Panel */}
+                {/* Property Insights Panel - Only if Data exists */}
+                {riskData && (
                     <div className={`
                         fixed inset-x-0 bottom-0 h-[65%] md:h-auto md:top-0 md:relative md:inset-auto md:w-[45%] 
                         bg-surface md:shadow-none border-l border-border overflow-y-auto custom-scrollbar
@@ -307,7 +295,6 @@ const Analyze = () => {
                         </div>
 
                         <div className="p-4 space-y-4">
-                            {/* Mobile Scan/Verify Risk */}
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-bold text-text-primary">Risk Report</h2>
                                 {riskData && (
@@ -332,7 +319,6 @@ const Analyze = () => {
 
                             <InsightsPanel data={riskData} loading={loading} />
 
-                            {/* Safety Disclaimer */}
                             <div className="mt-8 p-4 bg-surface-elevated rounded-xl border border-border flex items-start gap-3">
                                 <AlertTriangle className="h-4 w-4 text-text-secondary mt-0.5" />
                                 <p className="text-[10px] text-text-secondary leading-normal">
@@ -341,8 +327,8 @@ const Analyze = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             <ComparisonView />
         </div>

@@ -145,6 +145,7 @@ const Home = () => {
         detectState();
     }, [analysisState?.userLocation]);
 
+
     // 2. Fetch Recent History
     useEffect(() => {
         if (user) {
@@ -155,6 +156,10 @@ const Home = () => {
             fetchHistory();
         }
     }, [user]);
+
+    const handleSearchClick = (query) => {
+        navigate('/analyze', { state: { query } });
+    };
 
 
 
