@@ -36,7 +36,7 @@ const steps = [
     }
 ];
 
-const OnboardingOverlay = () => {
+const Tutorial = () => {
     const { user } = useAuth();
     const [isVisible, setIsVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
@@ -193,4 +193,4 @@ const OnboardingOverlay = () => {
     );
 };
 
-export default OnboardingOverlay;
+export default Tutorial;
