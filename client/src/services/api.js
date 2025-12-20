@@ -555,13 +555,10 @@ export const sendChatMessage = async (messages, context = {}) => {
   ];
 
   try {
-    const isProd = import.meta.env.PROD;
-    const url = isProd ? '/api/perplexity' : 'https://api.perplexity.ai/chat/completions';
-
-    const response = await fetch(url, {
+    // Always use proxy endpoint (works in both dev and prod)
+    const response = await fetch('/api/perplexity', {
       method: 'POST',
       headers: {
-        'Authorization': isProd ? undefined : `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

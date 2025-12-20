@@ -2,6 +2,7 @@ import React from 'react';
 import { Home, Building, Waves, Siren, Wind, Train, Coffee, MapPin, TrendingUp, AlertTriangle, Leaf, Factory, Users, Scale, Newspaper, DollarSign, Globe, Activity } from 'lucide-react';
 import RiskGauge from './RiskGauge';
 import RiskMetricCard from './RiskMetricCard';
+import RiskRadarChart from './RiskRadarChart';
 import HistoricalCharts from '../Charts/HistoricalCharts';
 import FacilitiesDisplay from './FacilitiesDisplay';
 import EconomicDashboard from '../Analytics/EconomicDashboard';
@@ -65,7 +66,7 @@ const InsightsPanel = ({ data, loading }) => {
             {/* Section 2: 10-Point Risk Breakdown */}
             <div className="mb-10">
                 <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-border">
-                    <div className="p-2 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg shadow-md">
+                    <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-md">
                         <AlertTriangle className="h-4 w-4 text-white" />
                     </div>
                     <div>
@@ -73,145 +74,164 @@ const InsightsPanel = ({ data, loading }) => {
                         <p className="text-xs text-text-secondary">Comprehensive property evaluation</p>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
-                    {/* Buying Risk */}
-                    {riskAnalysis.buying_risk && (
-                        <RiskMetricCard
-                            icon={Home}
-                            title="Buying Risk"
-                            score={riskAnalysis.buying_risk.score}
-                            status={riskAnalysis.buying_risk.status}
-                            factors={riskAnalysis.buying_risk.factors}
-                            description="Risk assessment for property purchase"
-                        />
-                    )}
 
-                    {/* Renting Risk */}
-                    {riskAnalysis.renting_risk && (
-                        <RiskMetricCard
-                            icon={Building}
-                            title="Renting Risk"
-                            score={riskAnalysis.renting_risk.score}
-                            status={riskAnalysis.renting_risk.status}
-                            factors={riskAnalysis.renting_risk.factors}
-                            description="Risk assessment for rental investment"
-                        />
-                    )}
+                {/* Radar Chart Visualization */}
+                <RiskRadarChart riskAnalysis={riskAnalysis} />
 
-                    {/* Flood Risk */}
-                    {riskAnalysis.flood_risk && (
-                        <RiskMetricCard
-                            icon={Waves}
-                            title="Flood Risk"
-                            score={riskAnalysis.flood_risk.score}
-                            status={riskAnalysis.flood_risk.level}
-                            factors={riskAnalysis.flood_risk.zones}
-                            description={riskAnalysis.flood_risk.description}
-                        />
-                    )}
+                {/* Detailed Metrics (Collapsible) */}
+                <details className="mt-6 group">
+                    <summary className="cursor-pointer list-none">
+                        <div className="flex items-center justify-between p-4 bg-surface-elevated rounded-xl border border-border hover:border-brand-primary transition-colors">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 text-brand-primary" />
+                                <span className="text-sm font-bold text-text-primary">View Detailed Metrics</span>
+                            </div>
+                            <svg className="h-5 w-5 text-text-secondary group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </summary>
 
-                    {/* Crime Rate */}
-                    {riskAnalysis.crime_rate && (
-                        <RiskMetricCard
-                            icon={Siren}
-                            title="Crime Rate"
-                            score={riskAnalysis.crime_rate.score}
-                            status={`${riskAnalysis.crime_rate.rate_per_1000}/1000 • ${riskAnalysis.crime_rate.trend}`}
-                            factors={riskAnalysis.crime_rate.types}
-                            description="Safety and crime statistics"
-                        />
-                    )}
+                    <div className="mt-4 grid grid-cols-1 gap-4">
+                        {/* Buying Risk */}
+                        {riskAnalysis.buying_risk && (
+                            <RiskMetricCard
+                                icon={Home}
+                                title="Buying Risk"
+                                score={riskAnalysis.buying_risk.score}
+                                status={riskAnalysis.buying_risk.status}
+                                factors={riskAnalysis.buying_risk.factors}
+                                description="Risk assessment for property purchase"
+                            />
+                        )}
 
-                    {/* Air Quality */}
-                    {riskAnalysis.air_quality && (
-                        <RiskMetricCard
-                            icon={Wind}
-                            title="Air Quality"
-                            score={riskAnalysis.air_quality.score}
-                            status={`AQI ${riskAnalysis.air_quality.aqi} • ${riskAnalysis.air_quality.rating}`}
-                            factors={riskAnalysis.air_quality.pollutants}
-                            description="Environmental air quality index"
-                        />
-                    )}
+                        {/* Renting Risk */}
+                        {riskAnalysis.renting_risk && (
+                            <RiskMetricCard
+                                icon={Building}
+                                title="Renting Risk"
+                                score={riskAnalysis.renting_risk.score}
+                                status={riskAnalysis.renting_risk.status}
+                                factors={riskAnalysis.renting_risk.factors}
+                                description="Risk assessment for rental investment"
+                            />
+                        )}
 
-                    {/* Amenities - Using Premium Facilities Display */}
-                    {riskAnalysis.amenities && (
-                        <div>
-                            <div className="mb-4 p-4 bg-surface-elevated rounded-xl border border-brand-primary/30 dark:bg-gradient-to-r dark:from-indigo-900/40 dark:to-purple-900/40">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div>
-                                        <h4 className="text-sm font-bold text-text-primary dark:text-white flex items-center gap-2">
-                                            <Coffee className="h-4 w-4 text-brand-primary" />
-                                            Proximity to Amenities
-                                        </h4>
-                                        <p className="text-xs text-text-secondary dark:text-gray-400 mt-0.5">Quality-rated facilities nearby</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-2xl font-bold text-brand-primary">
-                                            {riskAnalysis.amenities.score}
+                        {/* Flood Risk */}
+                        {riskAnalysis.flood_risk && (
+                            <RiskMetricCard
+                                icon={Waves}
+                                title="Flood Risk"
+                                score={riskAnalysis.flood_risk.score}
+                                status={riskAnalysis.flood_risk.level}
+                                factors={riskAnalysis.flood_risk.zones}
+                                description={riskAnalysis.flood_risk.description}
+                            />
+                        )}
+
+                        {/* Crime Rate */}
+                        {riskAnalysis.crime_rate && (
+                            <RiskMetricCard
+                                icon={Siren}
+                                title="Crime Rate"
+                                score={riskAnalysis.crime_rate.score}
+                                status={`${riskAnalysis.crime_rate.rate_per_1000}/1000 • ${riskAnalysis.crime_rate.trend}`}
+                                factors={riskAnalysis.crime_rate.types}
+                                description="Safety and crime statistics"
+                            />
+                        )}
+
+                        {/* Air Quality */}
+                        {riskAnalysis.air_quality && (
+                            <RiskMetricCard
+                                icon={Wind}
+                                title="Air Quality"
+                                score={riskAnalysis.air_quality.score}
+                                status={`AQI ${riskAnalysis.air_quality.aqi} • ${riskAnalysis.air_quality.rating}`}
+                                factors={riskAnalysis.air_quality.pollutants}
+                                description="Environmental air quality index"
+                            />
+                        )}
+
+                        {/* Amenities - Using Premium Facilities Display */}
+                        {riskAnalysis.amenities && (
+                            <div>
+                                <div className="mb-4 p-4 bg-surface-elevated rounded-xl border border-brand-primary/30 dark:bg-gradient-to-r dark:from-indigo-900/40 dark:to-purple-900/40">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-text-primary dark:text-white flex items-center gap-2">
+                                                <Coffee className="h-4 w-4 text-brand-primary" />
+                                                Proximity to Amenities
+                                            </h4>
+                                            <p className="text-xs text-text-secondary dark:text-gray-400 mt-0.5">Quality-rated facilities nearby</p>
                                         </div>
-                                        <div className="text-xs text-text-secondary">
-                                            Walk: {riskAnalysis.amenities.walkability}/100
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-brand-primary">
+                                                {riskAnalysis.amenities.score}
+                                            </div>
+                                            <div className="text-xs text-text-secondary">
+                                                Walk: {riskAnalysis.amenities.walkability}/100
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                                <FacilitiesDisplay amenities={riskAnalysis.amenities} />
                             </div>
-                            <FacilitiesDisplay amenities={riskAnalysis.amenities} />
-                        </div>
-                    )}
+                        )}
 
-                    {/* Transportation */}
-                    {riskAnalysis.transportation && (
-                        <RiskMetricCard
-                            icon={Train}
-                            title="Transportation Score"
-                            score={riskAnalysis.transportation.score}
-                            status={riskAnalysis.transportation.commute_time}
-                            factors={riskAnalysis.transportation.transit_options}
-                            description="Public transit and commute quality"
-                        />
-                    )}
+                        {/* Transportation */}
+                        {riskAnalysis.transportation && (
+                            <RiskMetricCard
+                                icon={Train}
+                                title="Transportation Score"
+                                score={riskAnalysis.transportation.score}
+                                status={riskAnalysis.transportation.commute_time}
+                                factors={riskAnalysis.transportation.transit_options}
+                                description="Public transit and commute quality"
+                            />
+                        )}
 
-                    {/* Neighbourhood */}
-                    {riskAnalysis.neighbourhood && (
-                        <RiskMetricCard
-                            icon={Users}
-                            title="Neighbourhood Rating"
-                            score={riskAnalysis.neighbourhood.score}
-                            status={riskAnalysis.neighbourhood.rating}
-                            factors={[
-                                riskAnalysis.neighbourhood.character,
-                                `Median Age: ${riskAnalysis.neighbourhood.demographics?.median_age || 'N/A'}`,
-                                `Density: ${riskAnalysis.neighbourhood.demographics?.population_density || 'N/A'}`
-                            ]}
-                            description="Community livability assessment"
-                        />
-                    )}
+                        {/* Neighbourhood */}
+                        {riskAnalysis.neighbourhood && (
+                            <RiskMetricCard
+                                icon={Users}
+                                title="Neighbourhood Rating"
+                                score={riskAnalysis.neighbourhood.score}
+                                status={riskAnalysis.neighbourhood.rating}
+                                factors={[
+                                    riskAnalysis.neighbourhood.character,
+                                    `Median Age: ${riskAnalysis.neighbourhood.demographics?.median_age || 'N/A'}`,
+                                    `Density: ${riskAnalysis.neighbourhood.demographics?.population_density || 'N/A'}`
+                                ]}
+                                description="Community livability assessment"
+                            />
+                        )}
 
-                    {/* Environmental Hazards */}
-                    {riskAnalysis.environmental_hazards && (
-                        <RiskMetricCard
-                            icon={Factory}
-                            title="Environmental Hazards"
-                            score={riskAnalysis.environmental_hazards.score}
-                            status={riskAnalysis.environmental_hazards.severity}
-                            factors={riskAnalysis.environmental_hazards.hazards}
-                            description="Contamination and pollution risks"
-                        />
-                    )}
+                        {/* Environmental Hazards */}
+                        {riskAnalysis.environmental_hazards && (
+                            <RiskMetricCard
+                                icon={Factory}
+                                title="Environmental Hazards"
+                                score={riskAnalysis.environmental_hazards.score}
+                                status={riskAnalysis.environmental_hazards.severity}
+                                factors={riskAnalysis.environmental_hazards.hazards}
+                                description="Contamination and pollution risks"
+                            />
+                        )}
 
-                    {/* Growth Potential */}
-                    {riskAnalysis.growth_potential && (
-                        <RiskMetricCard
-                            icon={TrendingUp}
-                            title="Economic Growth Potential"
-                            score={riskAnalysis.growth_potential.score}
-                            status={riskAnalysis.growth_potential.forecast}
-                            factors={riskAnalysis.growth_potential.drivers}
-                            description={riskAnalysis.growth_potential.outlook_5yr}
-                        />
-                    )}
-                </div>
+                        {/* Growth Potential */}
+                        {riskAnalysis.growth_potential && (
+                            <RiskMetricCard
+                                icon={TrendingUp}
+                                title="Economic Growth Potential"
+                                score={riskAnalysis.growth_potential.score}
+                                status={riskAnalysis.growth_potential.forecast}
+                                factors={riskAnalysis.growth_potential.drivers}
+                                description={riskAnalysis.growth_potential.outlook_5yr}
+                            />
+                        )}
+                    </div>
+                </details>
             </div>
 
             {/* Section 3: Historical Trends */}
