@@ -54,13 +54,13 @@ const EconomicDashboard = ({ data }) => {
             {politicalStability && (
                 <div
                     onMouseEnter={(e) => hoverScale(e.currentTarget)}
-                    className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border-2 border-purple-200 shadow-xl dark:from-purple-900/20 dark:via-purple-900/10 dark:to-background dark:border-purple-500/30"
+                    className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 border-2 border-teal-200 shadow-xl dark:from-teal-900/20 dark:via-cyan-900/10 dark:to-background dark:border-teal-500/30"
                 >
                     {/* Header with Score */}
-                    <div className="p-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10 backdrop-blur-sm dark:bg-purple-900/20">
+                    <div className="p-6 bg-gradient-to-r from-teal-500/10 to-cyan-500/10 backdrop-blur-sm dark:bg-teal-900/20">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                                <div className="p-3 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl shadow-lg">
                                     <ScaleIcon className="h-6 w-6 text-white" />
                                 </div>
                                 <div>
@@ -69,7 +69,7 @@ const EconomicDashboard = ({ data }) => {
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{politicalStability.score}</div>
+                                <div className="text-3xl font-bold text-teal-600 dark:text-teal-400">{politicalStability.score}</div>
                                 <div className="text-xs text-gray-600 dark:text-gray-400">Stability Score</div>
                             </div>
                         </div>
@@ -87,9 +87,9 @@ const EconomicDashboard = ({ data }) => {
                     <div className="p-6 bg-white/60 backdrop-blur-sm space-y-4 dark:bg-background/40">
                         {/* Policy Environment */}
                         {politicalStability.policy_environment && (
-                            <div className="p-4 bg-white rounded-xl border border-purple-100 shadow-sm dark:bg-surface-elevated dark:border-purple-500/20">
+                            <div className="p-4 bg-white rounded-xl border border-teal-100 shadow-sm dark:bg-surface-elevated dark:border-teal-500/20">
                                 <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                    <Globe className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                    <Globe className="h-4 w-4 text-teal-600 dark:text-teal-400" />
                                     Policy Environment
                                 </h4>
                                 <p className="text-sm text-gray-700 dark:text-gray-300">{politicalStability.policy_environment}</p>
@@ -102,9 +102,9 @@ const EconomicDashboard = ({ data }) => {
                                 <h4 className="text-xs font-bold text-gray-700 dark:text-gray-400 mb-2 uppercase tracking-wider">Key Factors</h4>
                                 <div className="grid grid-cols-1 gap-2">
                                     {politicalStability.factors.map((factor, idx) => (
-                                        <div key={idx} className="flex items-start gap-2 p-3 bg-purple-50 rounded-lg border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800">
+                                        <div key={idx} className="flex items-start gap-2 p-3 bg-teal-50 rounded-lg border border-teal-100 dark:bg-teal-900/20 dark:border-teal-800">
                                             <div className="mt-0.5">
-                                                <div className="h-2 w-2 rounded-full bg-purple-500"></div>
+                                                <div className="h-2 w-2 rounded-full bg-teal-500"></div>
                                             </div>
                                             <span className="text-sm text-gray-700 dark:text-gray-300">{factor}</span>
                                         </div>
@@ -182,7 +182,7 @@ const EconomicDashboard = ({ data }) => {
                             {/* Unemployment */}
                             <div className="p-4 bg-white/80 rounded-xl border border-blue-100 shadow-sm backdrop-blur-sm dark:bg-surface-elevated dark:border-blue-500/20">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <Briefcase className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                    <Briefcase className="h-4 w-4 text-teal-600 dark:text-teal-400" />
                                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Unemployment</span>
                                 </div>
                                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{tradeEconomy.unemployment_rate}%</div>

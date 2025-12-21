@@ -45,7 +45,9 @@ function AppContent() {
           updateAnalysis({ userLocation: { lat: latitude, lng: longitude } });
         },
         (error) => {
-          console.log("Location permission denied or error:", error);
+          console.warn("Location permission denied. Using default location (NYC).");
+          // Fallback to NYC
+          updateAnalysis({ userLocation: { lat: 40.7128, lng: -74.0060 } });
         }
       );
     }
@@ -54,36 +56,38 @@ function AppContent() {
   }, []);
 
   return (
-    <Routes>
-      {/* Public Authentication Pages */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+    <>
+      <Routes>
+        {/* Public Authentication Pages */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
-      {/* Protected/App Pages */}
-      <Route path="/" element={
-        <MainLayoutWrapper>
-          <Home />
-        </MainLayoutWrapper>
-      } />
-      <Route path="/analyze" element={
-        <MainLayoutWrapper>
-          <Analyze />
-        </MainLayoutWrapper>
-      } />
-      <Route path="/market" element={
-        <MainLayoutWrapper>
-          <div className="h-full overflow-y-auto custom-scrollbar p-2">
-            <InvestmentCalculator />
-          </div>
-        </MainLayoutWrapper>
-      } />
-      <Route path="/dashboard" element={
-        <MainLayoutWrapper>
-          <Dashboard />
-        </MainLayoutWrapper>
-      } />
-      {/* Settings removed as requested */}
-    </Routes>
+        {/* Protected/App Pages */}
+        <Route path="/" element={
+          <MainLayoutWrapper>
+            <Home />
+          </MainLayoutWrapper>
+        } />
+        <Route path="/analyze" element={
+          <MainLayoutWrapper>
+            <Analyze />
+          </MainLayoutWrapper>
+        } />
+        <Route path="/market" element={
+          <MainLayoutWrapper>
+            <div className="h-full overflow-y-auto custom-scrollbar p-2">
+              <InvestmentCalculator />
+            </div>
+          </MainLayoutWrapper>
+        } />
+        <Route path="/dashboard" element={
+          <MainLayoutWrapper>
+            <Dashboard />
+          </MainLayoutWrapper>
+        } />
+        {/* Settings removed as requested */}
+      </Routes>
+    </>
   );
 }
 

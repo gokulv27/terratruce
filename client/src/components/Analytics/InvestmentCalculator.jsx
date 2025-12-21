@@ -231,38 +231,38 @@ const InvestmentCalculator = () => {
                                 <AreaChart data={metrics.projection} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4} />
-                                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                                            <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.4} />
+                                            <stop offset="95%" stopColor="#14B8A6" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D2D2D" opacity={0.3} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(var(--border))" opacity={0.3} />
                                     <XAxis
                                         dataKey="year"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fill: '#6B7280', fontSize: 11, fontWeight: '600' }}
+                                        tick={{ fill: 'rgb(var(--text-secondary))', fontSize: 11, fontWeight: '600' }}
                                         dy={10}
                                     />
                                     <YAxis
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fill: '#6B7280', fontSize: 11, fontWeight: '600' }}
+                                        tick={{ fill: 'rgb(var(--text-secondary))', fontSize: 11, fontWeight: '600' }}
                                         tickFormatter={(v) => `${currency}${v / 1000}k`}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1A1A1A', borderColor: '#333', borderRadius: '12px', color: '#fff' }}
-                                        itemStyle={{ color: '#8B5CF6' }}
+                                        contentStyle={{ backgroundColor: 'rgb(var(--surface))', borderColor: 'rgb(var(--border))', borderRadius: '12px', color: 'rgb(var(--text-primary))' }}
+                                        itemStyle={{ color: '#14B8A6' }}
                                         formatter={(v) => [`${currency}${v.toLocaleString()}`, 'Value']}
                                     />
                                     <Area
                                         type="monotone"
                                         dataKey="value"
-                                        stroke="#8B5CF6"
+                                        stroke="#14B8A6"
                                         strokeWidth={3}
                                         fill="url(#chartGradient)"
                                         fillOpacity={1}
                                         shapeRendering="geometricPrecision"
-                                        dot={{ stroke: '#8B5CF6', strokeWidth: 2, fill: '#1A1A1A', r: 5 }}
+                                        dot={{ stroke: '#14B8A6', strokeWidth: 2, fill: 'rgb(var(--surface))', r: 5 }}
                                         activeDot={{ r: 7, strokeWidth: 0 }}
                                     />
                                 </AreaChart>

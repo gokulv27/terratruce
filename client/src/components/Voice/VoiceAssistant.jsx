@@ -118,10 +118,10 @@ const VoiceAssistant = () => {
             <button
                 onClick={toggleListening}
                 className={`fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 ${isListening
-                        ? 'bg-gradient-to-r from-red-500 to-pink-500 animate-pulse'
-                        : isSpeaking
-                            ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
-                            : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-purple-500/50'
+                    ? 'bg-gradient-to-r from-red-500 to-pink-500 animate-pulse'
+                    : isSpeaking
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                        : 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:shadow-teal-500/50'
                     }`}
                 title={isListening ? 'Stop listening' : 'Start voice command'}
             >
@@ -141,8 +141,8 @@ const VoiceAssistant = () => {
             {(transcript || error) && (
                 <div className="fixed bottom-24 right-6 z-50 max-w-xs animate-slide-up">
                     <div className={`p-4 rounded-2xl shadow-2xl backdrop-blur-lg border-2 ${error
-                            ? 'bg-red-500/90 border-red-400 text-white'
-                            : 'bg-purple-500/90 border-purple-400 text-white'
+                        ? 'bg-red-500/90 border-red-400 text-white'
+                        : 'bg-teal-500/90 border-teal-400 text-white'
                         }`}>
                         <div className="flex items-start gap-3">
                             <Mic className="h-5 w-5 mt-0.5 flex-shrink-0" />

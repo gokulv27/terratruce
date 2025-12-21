@@ -44,7 +44,7 @@ const InsightsPanel = ({ data, loading }) => {
     return (
         <div className="p-6 h-full overflow-y-auto bg-background custom-scrollbar transition-colors duration-300">
             {/* Section 1: Overall Risk Score with Gauge */}
-            <div className="mb-10 p-7 rounded-3xl bg-surface border-2 border-border shadow-xl backdrop-blur-sm dark:bg-gradient-to-br dark:from-gray-800/80 dark:via-purple-900/20 dark:to-pink-900/20 dark:border-purple-500/30">
+            <div className="mb-10 p-7 rounded-3xl bg-surface border-2 border-border shadow-xl backdrop-blur-sm dark:bg-gradient-to-br dark:from-gray-800/80 dark:via-teal-900/20 dark:to-cyan-900/20 dark:border-teal-500/30">
                 <h2 className="text-lg font-bold text-text-primary mb-5 text-center flex items-center justify-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-brand-primary" />
                     Overall Risk Assessment
@@ -53,7 +53,7 @@ const InsightsPanel = ({ data, loading }) => {
                     <RiskGauge score={riskAnalysis.overall_score || 50} />
                 </div>
                 {data.location_info?.formatted_address && (
-                    <div className="mt-5 text-center p-4 bg-surface-elevated rounded-xl border border-border dark:border-purple-500/20">
+                    <div className="mt-5 text-center p-4 bg-surface-elevated rounded-xl border border-border dark:border-teal-500/20">
                         <p className="text-xs text-text-secondary mb-1 uppercase tracking-wider">Location</p>
                         <p className="text-sm font-semibold text-text-primary">{data.location_info.formatted_address}</p>
                         {data.location_info.jurisdiction && (
@@ -66,7 +66,7 @@ const InsightsPanel = ({ data, loading }) => {
             {/* Section 2: 10-Point Risk Breakdown */}
             <div className="mb-10">
                 <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-border">
-                    <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-md">
+                    <div className="p-2 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg shadow-md">
                         <AlertTriangle className="h-4 w-4 text-white" />
                     </div>
                     <div>
@@ -156,7 +156,7 @@ const InsightsPanel = ({ data, loading }) => {
                         {/* Amenities - Using Premium Facilities Display */}
                         {riskAnalysis.amenities && (
                             <div>
-                                <div className="mb-4 p-4 bg-surface-elevated rounded-xl border border-brand-primary/30 dark:bg-gradient-to-r dark:from-indigo-900/40 dark:to-purple-900/40">
+                                <div className="mb-4 p-4 bg-surface-elevated rounded-xl border border-brand-primary/30 dark:bg-gradient-to-r dark:from-teal-900/40 dark:to-cyan-900/40">
                                     <div className="flex items-center justify-between mb-2">
                                         <div>
                                             <h4 className="text-sm font-bold text-text-primary dark:text-white flex items-center gap-2">
@@ -238,7 +238,7 @@ const InsightsPanel = ({ data, loading }) => {
             {data.historical_trends && (
                 <div className="mb-10">
                     <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-border">
-                        <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg shadow-md">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-teal-500 rounded-lg shadow-md">
                             <TrendingUp className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -267,7 +267,7 @@ const InsightsPanel = ({ data, loading }) => {
             {/* Section 3.6: Political & Economic Analysis */}
             <div className="mb-10">
                 <div className="flex items-center gap-2 mb-5 pb-3 border-b-2 border-border">
-                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg shadow-md">
+                    <div className="p-2 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg shadow-md">
                         <Globe className="h-4 w-4 text-white" />
                     </div>
                     <div>

@@ -301,7 +301,7 @@ const Analyze = () => {
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => triggerChat(`Find top 5 plots for sale in ${location} and rate them based on the risk data.`)}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg text-xs font-bold hover:shadow-lg hover:scale-105 transition-all shadow-md"
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-lg text-xs font-bold hover:shadow-lg hover:scale-105 transition-all shadow-md"
                                         >
                                             <Sparkles className="h-3 w-3" />
                                             Give Suggestions

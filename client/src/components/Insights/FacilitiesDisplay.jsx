@@ -46,11 +46,11 @@ const FacilitiesDisplay = ({ amenities }) => {
                 badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
             };
             case 'Shopping': return {
-                bg: 'from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20',
-                border: 'border-purple-200 dark:border-purple-700/50',
-                icon: 'bg-purple-500',
-                text: 'text-purple-700 dark:text-purple-300',
-                badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                bg: 'from-teal-50 to-cyan-100 dark:from-teal-900/30 dark:to-cyan-800/20',
+                border: 'border-teal-200 dark:border-teal-700/50',
+                icon: 'bg-teal-500',
+                text: 'text-teal-700 dark:text-teal-300',
+                badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300'
             };
             case 'Parks': return {
                 bg: 'from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20',

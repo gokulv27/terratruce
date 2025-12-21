@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, X, Bot, User, Minimize2, Sparkles, RefreshCcw, MapPin, BarChart2 } from 'lucide-react';
+import { MessageSquare, Send, X, Bot, User, Minimize2, Sparkles, RefreshCcw, MapPin, BarChart2, Mic, MicOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { sendChatMessage } from '../../services/api';
 import { useAnalysis } from '../../context/AnalysisContext';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
 const Chatbot = () => {
+    const navigate = useNavigate();
     const { analysisState } = useAnalysis() || { analysisState: {} };
     const { location, riskData, chatTrigger, userLocation } = analysisState || {};
 
@@ -15,10 +17,12 @@ const Chatbot = () => {
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [isListening, setIsListening] = useState(false);
     const messagesEndRef = useRef(null);
     const lastTriggerRef = useRef(0);
     const chatContainerRef = useRef(null);
     const buttonRef = useRef(null);
+    const recognitionRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -98,6 +102,106 @@ const Chatbot = () => {
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') handleSend();
+    };
+
+    // Voice Recognition Setup
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.lang = 'en-US';
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+
+            recognitionRef.current.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+
+                // Direct Navigation Check
+                const lower = transcript.toLowerCase();
+                const isNav = lower.includes('go to') || lower.includes('open') || lower.includes('navigate');
+
+                if (isNav) {
+                    setIsListening(false);
+                    if (lower.includes('dashboard')) {
+                        speak("Opening Dashboard");
+                        navigate('/dashboard');
+                    } else if (lower.includes('market') || lower.includes('calculator')) {
+                        speak("Opening Investment Calculator");
+                        navigate('/market');
+                    } else if (lower.includes('analyze') || lower.includes('map')) {
+                        speak("Opening Analysis Map");
+                        navigate('/analyze');
+                    } else if (lower.includes('home')) {
+                        speak("Going Home");
+                        navigate('/');
+                    } else {
+                        // If nav command but unclear, put in chat
+                        setInput(transcript);
+                        setIsOpen(true);
+                    }
+                } else {
+                    // Regular chat query
+                    setInput(transcript);
+                    setIsListening(false);
+                    setIsOpen(true); // Open chat to show result
+                }
+            };
+
+            recognitionRef.current.onerror = () => {
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+            };
+        }
+    }, [navigate]);
+
+    const speak = (text) => {
+        if ('speechSynthesis' in window) {
+            // Cancel current speech
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            // Get available voices
+            const voices = window.speechSynthesis.getVoices();
+            // Try to find a good female voice (Google US English or similar)
+            const preferredVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Samantha'));
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+    };
+
+    // Keyboard Shortcuts (Cmd+M / Ctrl+M)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'm') {
+                e.preventDefault();
+                toggleVoiceInput();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isListening]);
+
+    const toggleVoiceInput = () => {
+        if (!recognitionRef.current) {
+            alert('Voice recognition not supported in this browser. Please use Chrome or Edge.');
+            return;
+        }
+
+        if (isListening) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+        } else {
+            setIsListening(true);
+            recognitionRef.current.start();
+        }
     };
 
     // Suggestions based on context
@@ -241,9 +345,19 @@ const Chatbot = () => {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyPress}
-                                placeholder="Ask about properties, risks..."
+                                placeholder={isListening ? "Listening..." : "Ask about properties, risks..."}
                                 className="flex-1 bg-surface-elevated border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/50 text-text-primary placeholder:text-text-secondary transition-all"
                             />
+                            <button
+                                onClick={toggleVoiceInput}
+                                className={`p-3 rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 duration-200 ${isListening
+                                    ? 'bg-red-500 text-white animate-pulse'
+                                    : 'bg-teal-500 text-white hover:bg-teal-600'
+                                    }`}
+                                title={isListening ? "Stop listening" : "Voice input"}
+                            >
+                                {isListening ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                            </button>
                             <button
                                 onClick={() => handleSend()}
                                 disabled={!input.trim() || isTyping}
@@ -270,15 +384,35 @@ const Chatbot = () => {
                         </span>
                     </>
                 )}
-
-                {/* Tooltip */}
-                {!isOpen && (
-                    <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-surface text-text-primary px-4 py-2 rounded-xl shadow-xl border border-border opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                        <p className="text-sm font-bold">Ask AI Assistant</p>
-                        <p className="text-xs text-text-secondary">Find plots, analyze risks...</p>
-                    </div>
-                )}
             </button>
+
+            {/* External Voice Trigger (Visible when chat is closed) */}
+            {!isOpen && (
+                <button
+                    onClick={toggleVoiceInput}
+                    className={`absolute -top-16 right-0 p-3 rounded-full shadow-xl pointer-events-auto transition-all duration-300 hover:scale-110 ${isListening
+                        ? 'bg-red-500 text-white animate-pulse scale-110'
+                        : 'bg-surface border border-border text-brand-primary hover:bg-brand-primary hover:text-white'
+                        }`}
+                    title="Voice Command (Cmd+M)"
+                >
+                    {isListening ? (
+                        <div className="relative">
+                            <Mic className="h-5 w-5" />
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="relative group/mic">
+                            <Mic className="h-5 w-5" />
+                            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-black/50 text-white px-1.5 py-0.5 rounded opacity-0 group-hover/mic:opacity-100 transition-opacity whitespace-nowrap">
+                                ⌘ M
+                            </span>
+                        </div>
+                    )}
+                </button>
+            )}
         </div>
     );
 };

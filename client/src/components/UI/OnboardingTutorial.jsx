@@ -40,14 +40,14 @@ const OnboardingTutorial = ({ onComplete }) => {
 
         // Cleanup previous highlight
         if (highlightedElement) {
-            highlightedElement.classList.remove('z-[102]', 'relative', 'ring-4', 'ring-purple-500', 'bg-white', 'dark:bg-slate-900', 'rounded-xl');
+            highlightedElement.classList.remove('z-[102]', 'relative', 'ring-4', 'ring-teal-500', 'bg-white', 'dark:bg-slate-900', 'rounded-xl');
             setHighlightedElement(null);
         }
 
         if (step.highlight) {
             const el = document.getElementById(step.highlight) || document.querySelector(step.highlight);
             if (el) {
-                el.classList.add('z-[102]', 'relative', 'ring-4', 'ring-purple-500', 'bg-white', 'dark:bg-slate-900', 'rounded-xl');
+                el.classList.add('z-[102]', 'relative', 'ring-4', 'ring-teal-500', 'bg-white', 'dark:bg-slate-900', 'rounded-xl');
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setHighlightedElement(el);
             }
@@ -108,7 +108,7 @@ const OnboardingTutorial = ({ onComplete }) => {
 
         // Cleanup highlight on exit
         if (highlightedElement) {
-            highlightedElement.classList.remove('z-[102]', 'relative', 'ring-4', 'ring-purple-500', 'bg-white', 'dark:bg-slate-900', 'rounded-xl');
+            highlightedElement.classList.remove('z-[102]', 'relative', 'ring-4', 'ring-teal-500', 'bg-white', 'dark:bg-slate-900', 'rounded-xl');
         }
 
         setIsVisible(false);
@@ -140,11 +140,11 @@ const OnboardingTutorial = ({ onComplete }) => {
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
                         className={`fixed z-[101] ${getPositionClasses(step.position)}`}
                     >
-                        <div className="bg-white dark:bg-surface rounded-2xl shadow-2xl border-2 border-purple-500/50 dark:border-purple-500/30 p-6 max-w-md">
+                        <div className="bg-white dark:bg-surface rounded-2xl shadow-2xl border-2 border-teal-500/50 p-6 max-w-md">
                             {/* Header */}
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex-1">
-                                    <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-2">
+                                    <h3 className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-2">
                                         {step.title}
                                     </h3>
                                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
@@ -165,7 +165,7 @@ const OnboardingTutorial = ({ onComplete }) => {
                                     <div
                                         key={idx}
                                         className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentStep
-                                            ? 'w-8 bg-gradient-to-r from-purple-500 to-pink-500'
+                                            ? 'w-8 bg-gradient-to-r from-teal-500 to-cyan-500'
                                             : idx < currentStep
                                                 ? 'w-1.5 bg-green-500'
                                                 : 'w-1.5 bg-gray-300 dark:bg-gray-600'
@@ -184,7 +184,7 @@ const OnboardingTutorial = ({ onComplete }) => {
                                 </button>
                                 <button
                                     onClick={handleNext}
-                                    className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                                    className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
                                 >
                                     {isLastStep ? (
                                         <>

@@ -62,7 +62,7 @@ const MapView = ({ location, markers = [], onLocationClick }) => {
                         mapTypeControl: false,
                         streetViewControl: false,
                         fullscreenControl: false,
-                        styles: theme === 'dark' ? darkMapStyle : [],
+                        // styles: theme === 'dark' ? darkMapStyle : [], // Cannot use 'styles' with 'mapId'
                     }}
                 >
                     {/* Render Prop Markers */}

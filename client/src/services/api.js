@@ -340,14 +340,25 @@ CRITICAL REQUIREMENTS:
 
   try {
     const isProd = import.meta.env.PROD;
-    const url = isProd ? PROXY_URL : 'https://api.perplexity.ai/chat/completions';
+    // Use the Vite proxy path '/api/perplexity' in dev mode to avoid CORS
+    const url = isProd ? PROXY_URL : '/api/perplexity';
+
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    // In dev, the proxy handles the API key. In prod, we might need to send it if not handled by backend.
+    // Assuming PROXY_URL handles auth in prod, or we send it. 
+    // If prod uses backend proxy, we don't send key. If prod goes direct (unlikely due to CORS), we would.
+    // For now, let's assume we only add the key if we are NOT using the dev proxy AND we have a key.
+    // Actually, simply: don't send Authorization header if using dev proxy (Vite config adds it).
+    if (isProd && PERPLEXITY_API_KEY) {
+      headers['Authorization'] = `Bearer ${PERPLEXITY_API_KEY}`;
+    }
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Authorization': isProd ? undefined : `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
+      headers: headers,
       body: JSON.stringify({
         model: "sonar-pro",
         messages: [

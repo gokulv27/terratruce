@@ -82,10 +82,10 @@ const RiskRadarChart = ({ riskAnalysis }) => {
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></div>
+                                <div className="w-3 h-3 rounded-full bg-teal-500 shadow-sm"></div>
                                 <span className="text-xs text-text-secondary font-medium">Current:</span>
                             </div>
-                            <span className="text-sm font-bold text-purple-600">{data.current.toFixed(0)}</span>
+                            <span className="text-sm font-bold text-teal-600">{data.current.toFixed(0)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
@@ -111,7 +111,7 @@ const RiskRadarChart = ({ riskAnalysis }) => {
     const RadarChartComponent = ({ data, title, subtitle, icon: Icon, gradientFrom, gradientTo }) => (
         <div className={`w-full bg-gradient-to-br ${gradientFrom} ${gradientTo} rounded-2xl p-6 border-2 border-border shadow-2xl hover:shadow-3xl transition-shadow duration-300`}>
             <div className="mb-4 flex items-center gap-3">
-                <div className={`p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg`}>
+                <div className={`p-3 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 shadow-lg`}>
                     <Icon className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -187,13 +187,13 @@ const RiskRadarChart = ({ riskAnalysis }) => {
                     <Radar
                         name="Current"
                         dataKey="current"
-                        stroke="#8b5cf6"
-                        fill="#8b5cf6"
+                        stroke="#14b8a6"
+                        fill="#14b8a6"
                         fillOpacity={0.45}
                         strokeWidth={3.5}
                         dot={{
                             r: 6,
-                            fill: '#8b5cf6',
+                            fill: '#14b8a6',
                             stroke: '#fff',
                             strokeWidth: 2.5
                         }}
@@ -215,9 +215,9 @@ const RiskRadarChart = ({ riskAnalysis }) => {
 
             {/* Compact Legend */}
             <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center gap-1 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <div className="w-3 h-3 rounded-full bg-purple-500 shadow-md"></div>
-                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300">Current</span>
+                <div className="flex flex-col items-center gap-1 p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800">
+                    <div className="w-3 h-3 rounded-full bg-teal-500 shadow-md"></div>
+                    <span className="text-[10px] font-bold text-teal-700 dark:text-teal-300">Current</span>
                 </div>
                 <div className="flex flex-col items-center gap-1 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="w-3 h-3 rounded-full bg-blue-500 shadow-md"></div>
@@ -239,8 +239,8 @@ const RiskRadarChart = ({ riskAnalysis }) => {
                 title="Investment Risk Analysis"
                 subtitle="Financial viability & long-term value metrics"
                 icon={TrendingUp}
-                gradientFrom="from-purple-50/50"
-                gradientTo="to-pink-50/50 dark:from-purple-900/10 dark:to-pink-900/10"
+                gradientFrom="from-teal-50/50"
+                gradientTo="to-cyan-50/50 dark:from-teal-900/10 dark:to-cyan-900/10"
             />
 
             {/* Livability Metrics Chart */}
