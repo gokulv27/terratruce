@@ -117,7 +117,7 @@ const DashboardLayout = ({ children }) => {
                                 {history.length > 0 && (
                                     <button
                                         onClick={handleClearHistory}
-                                        className="opacity-0 group-hover/total:opacity-100 hover:text-red-500 transition-all text-[10px]"
+                                        className="opacity-0 group-hover/total:opacity-100 text-red-500 hover:text-red-600 transition-all text-[10px] font-bold"
                                     >
                                         Clear
                                     </button>
