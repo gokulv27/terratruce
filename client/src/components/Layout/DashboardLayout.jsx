@@ -6,7 +6,7 @@ import { supabase } from '../../services/supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import Chatbot from '../Chat/Chatbot';
+// import Chatbot from '../Chat/Chatbot';
 import Tutorial from '../Onboarding/Tutorial';
 import { useAnalysis } from '../../context/AnalysisContext';
 
@@ -240,7 +240,7 @@ const DashboardLayout = ({ children }) => {
                 {/* Animated Page Content */}
                 <main className="flex-1 overflow-y-auto relative p-4 scroll-smooth custom-scrollbar">
                     {children}
-                    <Chatbot />
+                    {/* <Chatbot /> */}
                 </main>
             </div>
         </div>
