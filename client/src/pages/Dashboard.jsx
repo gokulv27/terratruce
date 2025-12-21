@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import { usePortfolio } from '../context/PortfolioContext';
-import { DollarSign, TrendingUp, PieChart, Wallet, ArrowUpRight, Trash2, Building2, Plus, X } from 'lucide-react';
+import { DollarSign, TrendingUp, PieChart, Wallet, ArrowUpRight, Trash2, Building2, Plus, X, Edit2, Check } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Dashboard = () => {
-    const { portfolio, removeFromPortfolio, getPortfolioSummary, addToPortfolio } = usePortfolio();
+    const { portfolio, removeFromPortfolio, getPortfolioSummary, addToPortfolio, renameInPortfolio } = usePortfolio();
     const summary = getPortfolioSummary();
     const displayCurrency = portfolio.length > 0 ? (portfolio[0].currency || '$') : '$';
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [editingName, setEditingName] = useState('');
 
     // Convert portfolio to chart data
     const chartData = portfolio.map((item, index) => ({
         name: `Inv ${index + 1}`,
         value: Number(item.monthly_cash_flow) || Number(item.monthlyCashFlow) || 0
-    })).reverse(); // Oldest first?
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    })).reverse();
 
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 font-sans pb-24">
@@ -138,20 +139,70 @@ const Dashboard = () => {
                         ) : (
                             portfolio.map(item => (
                                 <div key={item.id} className="group flex items-center justify-between p-4 rounded-2xl bg-surface-elevated hover:bg-gradient-to-r hover:from-brand-primary/5 hover:to-transparent transition-all border border-transparent hover:border-brand-primary/10">
-                                    <div className="overflow-hidden">
-                                        <h4 className="font-bold text-text-primary truncate">{item.location || item.property_name || "Asset"}</h4>
-                                        <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
-                                            <span className="text-green-600 font-bold">{item.currency || '$'}{Number(item.monthly_cash_flow || item.monthlyCashFlow).toLocaleString()}/mo</span>
-                                            <span className="opacity-30">|</span>
-                                            <span>Val: {item.currency || '$'}{Number(item.purchase_price || item.purchasePrice).toLocaleString()}</span>
-                                        </div>
+                                    <div className="flex-1 overflow-hidden">
+                                        {editingId === item.id ? (
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={editingName}
+                                                    onChange={(e) => setEditingName(e.target.value)}
+                                                    className="flex-1 px-3 py-2 bg-surface border-2 border-brand-primary rounded-xl font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                                                    autoFocus
+                                                    onKeyPress={(e) => {
+                                                        if (e.key === 'Enter' && editingName.trim()) {
+                                                            renameInPortfolio(item.id, editingName.trim());
+                                                            setEditingId(null);
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        if (editingName.trim()) {
+                                                            renameInPortfolio(item.id, editingName.trim());
+                                                            setEditingId(null);
+                                                        }
+                                                    }}
+                                                    className="p-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingId(null)}
+                                                    className="p-2 bg-surface border border-border text-text-secondary rounded-xl hover:border-brand-primary hover:text-brand-primary transition-colors"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <h4 className="font-bold text-text-primary truncate">{item.location || item.property_name || "Asset"}</h4>
+                                                <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
+                                                    <span className="text-green-600 font-bold">{item.currency || '$'}{Number(item.monthly_cash_flow || item.monthlyCashFlow).toLocaleString()}/mo</span>
+                                                    <span className="opacity-30">|</span>
+                                                    <span>Val: {item.currency || '$'}{Number(item.purchase_price || item.purchasePrice).toLocaleString()}</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => removeFromPortfolio(item.id)}
-                                        className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 transform group-hover:scale-110"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
+                                    {editingId !== item.id && (
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingId(item.id);
+                                                    setEditingName(item.location || item.property_name || "Asset");
+                                                }}
+                                                className="p-2 text-text-secondary hover:text-brand-primary hover:bg-brand-primary/10 rounded-xl transition-all transform hover:scale-110"
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => removeFromPortfolio(item.id)}
+                                                className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all transform hover:scale-110"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}

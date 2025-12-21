@@ -100,6 +100,28 @@ export const PortfolioProvider = ({ children }) => {
         }
     };
 
+    const renameInPortfolio = async (id, newName) => {
+        try {
+            // Optimistic update
+            setPortfolio(prev => prev.map(item =>
+                item.id === id ? { ...item, location: newName } : item
+            ));
+
+            if (user) {
+                const { error } = await supabase
+                    .from('portfolio')
+                    .update({ location: newName })
+                    .eq('id', id);
+
+                if (error) throw error;
+            }
+        } catch (error) {
+            console.error('Error renaming portfolio item:', error);
+            // Revert on error
+            fetchPortfolio();
+        }
+    };
+
     const getPortfolioSummary = () => {
         return portfolio.reduce((acc, item) => {
             acc.totalAssets += (Number(item.purchase_price) || 0);
@@ -114,6 +136,7 @@ export const PortfolioProvider = ({ children }) => {
         loading,
         addToPortfolio,
         removeFromPortfolio,
+        renameInPortfolio,
         getPortfolioSummary
     };
 
