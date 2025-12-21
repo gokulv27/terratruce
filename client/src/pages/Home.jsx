@@ -36,7 +36,7 @@ const HottestSearchesTable = ({ items, onSearch, region }) => (
     <div className="col-span-1 bg-surface/80 backdrop-blur-xl border border-brand-primary/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden h-full flex flex-col">
         <div className="flex items-center justify-between mb-6 relative z-10">
             <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-gradient-to-br from-orange-400 to-pink-500 rounded-xl text-white shadow-lg shadow-orange-500/20">
+                <div className="p-2.5 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-xl text-white shadow-lg shadow-teal-500/20">
                     <Flame className="h-5 w-5" />
                 </div>
                 <div>

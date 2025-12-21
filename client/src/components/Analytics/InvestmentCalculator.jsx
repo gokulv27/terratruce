@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { DollarSign, Percent, TrendingUp, Calculator, PieChart, Info, RefreshCw, Wand2, Search, Calendar, LayoutDashboard, Check } from 'lucide-react';
+import { DollarSign, Percent, TrendingUp, Calculator, PieChart, Info, RefreshCw, Wand2, Search, Calendar, LayoutDashboard, Check, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import LocationSearch from '../Search/LocationSearch';
 import { analyzePropertyRisk } from '../../services/api';
 import { usePortfolio } from '../../context/PortfolioContext';
@@ -34,6 +35,8 @@ const InvestmentCalculator = () => {
     const [currentLocation, setCurrentLocation] = useState(location.state?.location || "");
     const { addToPortfolio } = usePortfolio();
     const [saved, setSaved] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [investmentName, setInvestmentName] = useState('');
 
     const estimateValues = (score) => {
         if (!score) return;
@@ -136,8 +139,8 @@ const InvestmentCalculator = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto relative z-20">
-                    <div className="bg-surface border border-border rounded-xl shadow-sm p-1 md:w-64 focus-within:ring-2 ring-brand-primary/20 transition-all">
+                <div className="flex flex-col md:flex-row gap-6 w-full md:w-auto relative z-20">
+                    <div className="bg-surface border-2 border-border rounded-2xl shadow-md p-3 md:w-80 focus-within:ring-2 focus-within:ring-brand-primary/30 focus-within:border-brand-primary transition-all">
                         <LocationSearch
                             placeholder="Analyze new location..."
                             small
@@ -147,7 +150,7 @@ const InvestmentCalculator = () => {
                     <select
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
-                        className="px-3 py-2 bg-surface-elevated border border-border rounded-xl font-bold text-text-primary outline-none cursor-pointer hover:border-brand-primary transition-colors appearance-none text-center w-16 shadow-sm"
+                        className="px-5 py-4 bg-surface-elevated border-2 border-border rounded-2xl font-bold text-text-primary outline-none cursor-pointer hover:border-brand-primary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/30 transition-all appearance-none text-center w-full md:w-24 shadow-md"
                     >
                         <option value="$">$ USD</option>
                         <option value="₹">₹ INR</option>
@@ -157,23 +160,15 @@ const InvestmentCalculator = () => {
 
                     <button
                         onClick={() => {
-                            addToPortfolio({
-                                location: currentLocation || "New Investment",
-                                purchasePrice,
-                                monthlyCashFlow: metrics.monthlyCashFlow,
-                                monthlyCost: expenses + metrics.mortgagePayment,
-                                currency,
-                                date: new Date().toISOString()
-                            });
-                            setSaved(true);
-                            setTimeout(() => setSaved(false), 2000);
+                            setInvestmentName(currentLocation || 'My Investment');
+                            setIsModalOpen(true);
                         }}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-md active:scale-95 ${saved ? 'bg-green-500 text-white shadow-green-500/30' : 'bg-gradient-to-r from-surface-elevated to-surface border border-border hover:border-brand-primary hover:text-brand-primary'}`}
+                        className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl active:scale-95 whitespace-nowrap ${saved ? 'bg-green-500 text-white shadow-green-500/40' : 'bg-gradient-to-r from-surface-elevated to-surface border-2 border-border hover:border-brand-primary hover:text-brand-primary hover:shadow-brand-primary/20'}`}
                     >
-                        {saved ? <Check className="h-4 w-4" /> : <LayoutDashboard className="h-4 w-4" />}
+                        {saved ? <Check className="h-5 w-5" /> : <LayoutDashboard className="h-5 w-5" />}
                         {saved ? 'Saved!' : 'Add to Dashboard'}
                     </button>
-                    {analyzing && <div className="absolute top-full text-xs text-brand-primary font-bold mt-1 ml-1">Analyzing Market Data...</div>}
+                    {analyzing && <div className="absolute top-full text-xs text-brand-primary font-bold mt-2 ml-1">Analyzing Market Data...</div>}
                 </div>
             </div>
 
@@ -231,38 +226,38 @@ const InvestmentCalculator = () => {
                                 <AreaChart data={metrics.projection} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4} />
-                                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                                            <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.4} />
+                                            <stop offset="95%" stopColor="#14B8A6" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D2D2D" opacity={0.3} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(var(--border))" opacity={0.3} />
                                     <XAxis
                                         dataKey="year"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fill: '#6B7280', fontSize: 11, fontWeight: '600' }}
+                                        tick={{ fill: 'rgb(var(--text-secondary))', fontSize: 11, fontWeight: '600' }}
                                         dy={10}
                                     />
                                     <YAxis
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fill: '#6B7280', fontSize: 11, fontWeight: '600' }}
+                                        tick={{ fill: 'rgb(var(--text-secondary))', fontSize: 11, fontWeight: '600' }}
                                         tickFormatter={(v) => `${currency}${v / 1000}k`}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1A1A1A', borderColor: '#333', borderRadius: '12px', color: '#fff' }}
-                                        itemStyle={{ color: '#8B5CF6' }}
+                                        contentStyle={{ backgroundColor: 'rgb(var(--surface))', borderColor: 'rgb(var(--border))', borderRadius: '12px', color: 'rgb(var(--text-primary))' }}
+                                        itemStyle={{ color: '#14B8A6' }}
                                         formatter={(v) => [`${currency}${v.toLocaleString()}`, 'Value']}
                                     />
                                     <Area
                                         type="monotone"
                                         dataKey="value"
-                                        stroke="#8B5CF6"
+                                        stroke="#14B8A6"
                                         strokeWidth={3}
                                         fill="url(#chartGradient)"
                                         fillOpacity={1}
                                         shapeRendering="geometricPrecision"
-                                        dot={{ stroke: '#8B5CF6', strokeWidth: 2, fill: '#1A1A1A', r: 5 }}
+                                        dot={{ stroke: '#14B8A6', strokeWidth: 2, fill: 'rgb(var(--surface))', r: 5 }}
                                         activeDot={{ r: 7, strokeWidth: 0 }}
                                     />
                                 </AreaChart>
@@ -271,6 +266,106 @@ const InvestmentCalculator = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Investment Name Modal */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setIsModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-surface border-2 border-border rounded-3xl p-8 w-full max-w-md shadow-2xl relative"
+                        >
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="absolute top-4 right-4 p-2 hover:bg-surface-elevated rounded-xl transition-colors"
+                            >
+                                <X className="h-5 w-5 text-text-secondary" />
+                            </button>
+
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-2xl">
+                                    <LayoutDashboard className="h-6 w-6 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-text-primary">Name Your Investment</h2>
+                                    <p className="text-sm text-text-secondary">Create a widget for your dashboard</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-bold text-text-secondary ml-1 mb-2 block">
+                                        Investment Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={investmentName}
+                                        onChange={(e) => setInvestmentName(e.target.value)}
+                                        placeholder="e.g., Downtown Apartment, Beach House..."
+                                        className="w-full px-4 py-3.5 bg-surface-elevated border-2 border-border rounded-xl text-text-primary font-bold focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/20 transition-all"
+                                        autoFocus
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && investmentName.trim()) {
+                                                addToPortfolio({
+                                                    location: investmentName.trim(),
+                                                    purchasePrice,
+                                                    monthlyCashFlow: metrics.monthlyCashFlow,
+                                                    monthlyCost: expenses + metrics.mortgagePayment,
+                                                    currency,
+                                                    date: new Date().toISOString()
+                                                });
+                                                setSaved(true);
+                                                setIsModalOpen(false);
+                                                setTimeout(() => setSaved(false), 2000);
+                                            }
+                                        }}
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="flex-1 px-6 py-3.5 bg-surface-elevated border-2 border-border rounded-xl font-bold text-text-secondary hover:border-brand-primary hover:text-brand-primary transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (investmentName.trim()) {
+                                                addToPortfolio({
+                                                    location: investmentName.trim(),
+                                                    purchasePrice,
+                                                    monthlyCashFlow: metrics.monthlyCashFlow,
+                                                    monthlyCost: expenses + metrics.mortgagePayment,
+                                                    currency,
+                                                    date: new Date().toISOString()
+                                                });
+                                                setSaved(true);
+                                                setIsModalOpen(false);
+                                                setTimeout(() => setSaved(false), 2000);
+                                            }
+                                        }}
+                                        disabled={!investmentName.trim()}
+                                        className="flex-1 px-6 py-3.5 bg-gradient-to-r from-brand-primary to-brand-secondary text-white rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Check className="h-5 w-5" />
+                                        Save to Dashboard
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 };

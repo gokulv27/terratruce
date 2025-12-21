@@ -52,7 +52,7 @@ const VisualMetrics = ({ data }) => {
             icon: TrendingUp,
             color: "text-brand-primary",
             bg: "bg-brand-primary/10",
-            lightBg: "from-purple-50 to-purple-100",
+            lightBg: "from-teal-50 to-cyan-100",
             text: risk.growth_potential.forecast,
             direction: "Higher is better"
         }

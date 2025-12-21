@@ -4,44 +4,44 @@
 
 @layer base {
   :root {
-    /* Light Mode - Vibrant & Engaging Color Palette */
-    --background: 248 250 252;
-    /* #F8FAFC - Clean Slate Blue */
-    --surface: 255 255 255;
-    /* Pure White */
-    --surface-elevated: 241 245 249;
-    /* #F1F5F9 - Subtle Blue Gray */
+    /* Light Mode - High Contrast Black Text with Blue-Green Accents */
+    --background: 255 255 255;
+    /* #FFFFFF - Pure White */
+    --surface: 250 252 255;
+    /* #FAFCFF - Subtle Blue Tint */
+    --surface-elevated: 245 248 252;
+    /* #F5F8FC - Light Blue Gray */
 
-    --text-primary: 15 23 42;
-    /* #0F172A - Rich Dark Blue */
-    --text-secondary: 71 85 105;
-    /* #475569 - Medium Slate */
+    --text-primary: 0 0 0;
+    /* #000000 - Pure Black for maximum visibility */
+    --text-secondary: 30 41 59;
+    /* #1E293B - Very Dark Gray */
 
-    --border: 226 232 240;
-    /* #E2E8F0 - Soft Border */
+    --border: 203 213 225;
+    /* #CBD5E1 - Visible Border */
 
-    /* Branding - Vibrant Teal & Purple */
-    --brand-primary: 6 182 212;
+    /* Branding - Blue-Green (Teal/Cyan) Theme */
+    --brand-primary: 20 184 166;
+    /* #14B8A6 - Teal (Blue-Green Mix) */
+    --brand-secondary: 6 182 212;
     /* #06B6D4 - Bright Cyan */
-    --brand-secondary: 139 92 246;
-    /* #8B5CF6 - Vivid Purple */
-    --brand-accent: 236 72 153;
-    /* #EC4899 - Hot Pink */
-    --brand-glow: 6 182 212;
+    --brand-accent: 14 165 233;
+    /* #0EA5E9 - Sky Blue */
+    --brand-glow: 20 184 166;
 
     /* Status Colors */
-    --success: 34 197 94;
-    /* #22C55E - Vibrant Green */
-    --warning: 251 191 36;
-    /* #FBBF24 - Warm Yellow */
-    --error: 239 68 68;
-    /* #EF4444 - Bright Red */
-    --info: 59 130 246;
-    /* #3B82F6 - Sky Blue */
+    --success: 22 163 74;
+    /* #16A34A - Darker Green for visibility */
+    --warning: 234 179 8;
+    /* #EAB308 - Darker Yellow */
+    --error: 220 38 38;
+    /* #DC2626 - Darker Red */
+    --info: 3 105 161;
+    /* #0369A1 - Darker Blue */
   }
 
   .dark {
-    /* Dark Mode - Premium Cyber (Purple/Pink Restoration) */
+    /* Dark Mode - Teal/Cyan Theme (Matching Light Mode) */
     --background: 3 7 18;
     /* gray-950 */
     --surface: 15 23 42;
@@ -57,12 +57,12 @@
     --border: 30 41 59;
     /* slate-800 */
 
-    /* Branding - Vivid Violet/Pink for pop against dark */
-    --brand-primary: 168 85 247;
-    /* purple-500 */
-    --brand-secondary: 236 72 153;
-    /* pink-500 */
-    --brand-glow: 168 85 247;
+    /* Branding - Teal/Cyan for consistency */
+    --brand-primary: 20 184 166;
+    /* teal-500 */
+    --brand-secondary: 6 182 212;
+    /* cyan-500 */
+    --brand-glow: 20 184 166;
   }
 
   body {
@@ -80,20 +80,20 @@
   }
 
   .text-gradient-alt {
-    background: linear-gradient(135deg, #06B6D4 0%, #8B5CF6 50%, #EC4899 100%);
+    background: linear-gradient(135deg, #14B8A6 0%, #06B6D4 50%, #0EA5E9 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .premium-shadow {
-    box-shadow: 0 10px 40px -10px rgba(6, 182, 212, 0.25);
-    /* Vibrant Cyan Shadow for Light Mode */
+    box-shadow: 0 10px 40px -10px rgba(20, 184, 166, 0.3);
+    /* Teal Shadow for Light Mode */
   }
 
   .dark .premium-shadow {
-    box-shadow: 0 10px 40px -10px rgba(168, 85, 247, 0.15);
-    /* Purple Shadow for Dark Mode */
+    box-shadow: 0 10px 40px -10px rgba(20, 184, 166, 0.15);
+    /* Teal Shadow for Dark Mode */
   }
 
   .premium-card {
@@ -101,11 +101,11 @@
   }
 
   .premium-card:hover {
-    box-shadow: 0 20px 50px -10px rgba(6, 182, 212, 0.3);
+    box-shadow: 0 20px 50px -10px rgba(20, 184, 166, 0.35);
   }
 
   .dark .premium-card:hover {
-    box-shadow: 0 20px 50px -10px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 20px 50px -10px rgba(20, 184, 166, 0.2);
   }
 
   /* Animations */

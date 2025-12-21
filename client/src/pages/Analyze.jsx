@@ -299,13 +299,13 @@ const Analyze = () => {
                                 <h2 className="text-lg font-bold text-text-primary">Risk Report</h2>
                                 {riskData && (
                                     <div className="flex items-center gap-2">
-                                        {/* <button
-    onClick={() => triggerChat(`Find top 5 plots for sale in ${location} and rate them based on the risk data.`)}
-    className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg text-xs font-bold hover:shadow-lg hover:scale-105 transition-all shadow-md"
->
-    <Sparkles className="h-3 w-3" />
-    Give Suggestions
-</button> */}
+                                        <button
+                                            onClick={() => triggerChat(`Find top 5 plots for sale in ${location} and rate them based on the risk data.`)}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-lg text-xs font-bold hover:shadow-lg hover:scale-105 transition-all shadow-md"
+                                        >
+                                            <Sparkles className="h-3 w-3" />
+                                            Give Suggestions
+                                        </button>
                                         <button
                                             onClick={() => addToCompare(riskData)}
                                             className="flex items-center gap-2 px-3 py-1.5 bg-brand-primary/10 text-brand-primary rounded-lg text-xs font-bold hover:bg-brand-primary hover:text-white transition-all"
