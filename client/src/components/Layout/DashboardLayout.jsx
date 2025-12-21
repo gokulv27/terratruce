@@ -6,8 +6,8 @@ import { supabase } from '../../services/supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import Chatbot from '../Chat/Chatbot';
-import Tutorial from '../OnboardingFlow/Tutorial';
+// import Chatbot from '../Chat/Chatbot';
+import Tutorial from '../UI/TutorialCard';
 import { useAnalysis } from '../../context/AnalysisContext';
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
@@ -52,7 +52,7 @@ const DashboardLayout = ({ children }) => {
     return (
         <div className="flex h-screen bg-background text-text-primary overflow-hidden font-sans transition-colors duration-300">
             {/* Tutorial Overlay */}
-            <Tutorial />
+            {/* <Tutorial /> */}
 
             {/* Sidebar - Power BI Style */}
             <div className="w-64 bg-surface border-r border-border flex flex-col z-20 shadow-2xl transition-colors duration-300">
@@ -240,7 +240,7 @@ const DashboardLayout = ({ children }) => {
                 {/* Animated Page Content */}
                 <main className="flex-1 overflow-y-auto relative p-4 scroll-smooth custom-scrollbar">
                     {children}
-                    <Chatbot />
+                    {/* <Chatbot /> */}
                 </main>
             </div>
         </div>

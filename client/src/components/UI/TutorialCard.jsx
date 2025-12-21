@@ -79,12 +79,12 @@ const TutorialCard = ({ onComplete }) => {
             position: "center",
             highlight: "calculator"
         },
-        {
-            title: "AI Assistant 🤖",
-            description: "Chat with our AI to get personalized property recommendations and insights.",
-            position: "bottom-right",
-            highlight: "chatbot"
-        }
+        /*        {
+                    title: "AI Assistant 🤖",
+                    description: "Chat with our AI to get personalized property recommendations and insights.",
+                    position: "bottom-right",
+                    highlight: "chatbot"
+                } */
     ];
 
     const handleNext = () => {
