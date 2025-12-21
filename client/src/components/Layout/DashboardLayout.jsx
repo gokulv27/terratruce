@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 // import Chatbot from '../Chat/Chatbot';
-import Tutorial from '../Onboarding/Tutorial';
+import Tutorial from '../UI/OnboardingTutorial';
 import { useAnalysis } from '../../context/AnalysisContext';
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
@@ -52,7 +52,7 @@ const DashboardLayout = ({ children }) => {
     return (
         <div className="flex h-screen bg-background text-text-primary overflow-hidden font-sans transition-colors duration-300">
             {/* Tutorial Overlay */}
-            <Tutorial />
+            {/* <Tutorial /> */}
 
             {/* Sidebar - Power BI Style */}
             <div className="w-64 bg-surface border-r border-border flex flex-col z-20 shadow-2xl transition-colors duration-300">
