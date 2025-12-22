@@ -140,8 +140,6 @@ export const AnalysisProvider = ({ children }) => {
             history,
             fetchHistory,
             addToHistory,
-            fetchHistory,
-            addToHistory,
             clearHistory,
             historyLoading
         }}>
