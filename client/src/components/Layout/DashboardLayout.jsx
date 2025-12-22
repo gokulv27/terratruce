@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import Tutorial from '../UI/TutorialCard';
 import { useAnalysis } from '../../context/AnalysisContext';
+import Chatbot from '../Chat/Chatbot';
 
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
     <Link
@@ -117,7 +118,7 @@ const DashboardLayout = ({ children }) => {
                                 {history.length > 0 && (
                                     <button
                                         onClick={handleClearHistory}
-                                        className="opacity-0 group-hover/total:opacity-100 text-red-500 hover:text-red-600 transition-all text-[10px] font-bold"
+                                        className="text-red-500 hover:text-red-600 transition-all text-[10px] font-bold"
                                     >
                                         Clear
                                     </button>
@@ -243,6 +244,9 @@ const DashboardLayout = ({ children }) => {
 
                 </main>
             </div>
+
+            {/* Global Chatbot */}
+            <Chatbot />
         </div>
     );
 };
