@@ -88,18 +88,26 @@ export const AnalysisProvider = ({ children }) => {
 
         try {
             const validRiskScore = typeof riskScore === 'number' ? Math.round(riskScore) : null;
-            const normalizedLocation = locationName.trim();
+            // Normalize: lowercase, trim, and collapse multiple spaces to single space
+            const normalizedLocation = locationName.toLowerCase().trim().replace(/\s+/g, ' ');
 
-            // 1. Remove existing entry for this location to prevent duplicates (and move to top)
-            await supabase
+            // 1. Remove existing entry for this location (using ilike for case-insensitivity)
+            const { error: deleteError } = await supabase
                 .from('search_history')
                 .delete()
                 .eq('user_id', currentUserId)
                 .ilike('location_name', normalizedLocation);
 
-            // 2. Insert new entry
+            if (deleteError) console.warn("Error deleting duplicate:", deleteError);
+
+            // 2. Insert new entry (store as proper case if original had it, or just normalized? 
+            // Better to store 'locationName' trimmed but use normalized for dup check? 
+            // Actually, for history consistency, let's store the clean version but maybe Capitalized?
+            // For now, let's store the user's input trimmed/cleaned.
+            const cleanLocationName = locationName.trim().replace(/\s+/g, ' ');
+
             const { error } = await supabase.from('search_history').insert([{
-                location_name: normalizedLocation,
+                location_name: cleanLocationName,
                 user_id: currentUserId,
                 risk_score: validRiskScore
             }]);

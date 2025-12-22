@@ -102,6 +102,13 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Debug Banner for API Key */}
+            {!import.meta.env.VITE_PERPLEXITY_API_KEY && (
+                <div className="bg-red-500 text-white p-4 rounded-xl font-bold text-center mb-6 animate-pulse border-2 border-white shadow-xl">
+                    ⚠️ API KEY NOT FOUND! Risk Analysis will fail. Please restart server (`npm run dev`).
+                </div>
+            )}
+
             {/* Hottest Searches Section */}
             <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
@@ -421,8 +428,8 @@ const Dashboard = () => {
                                         iconType="circle"
                                         wrapperStyle={{ fontSize: '10px', top: 0, right: 0 }}
                                     />
-                                    <Bar dataKey="Net" name="Profit" stackId="a" fill="#10B981" radius={[0, 0, 4, 4]} barSize={40} />
-                                    <Bar dataKey="Expenses" name="Cost" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={40} />
+                                    <Bar dataKey="Net" name="Profit" stackId="a" fill="#10B981" radius={[0, 0, 4, 4]} barSize={40} minPointSize={5} />
+                                    <Bar dataKey="Expenses" name="Cost" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={40} minPointSize={5} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
