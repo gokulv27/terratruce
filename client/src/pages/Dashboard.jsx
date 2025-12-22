@@ -365,18 +365,20 @@ const Dashboard = () => {
                     </div>
 
                     <div className="flex-1 w-full min-h-0 relative overflow-x-auto custom-scrollbar">
-                        <div style={{ width: Math.max(100, flowData.length * 20) + '%', height: '100%' }}>
+                        <div style={{ minWidth: '100%', width: flowData.length > 5 ? `${flowData.length * 100}px` : '100%', height: '100%' }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={flowData} margin={{ top: 30, right: 10, left: -10, bottom: 0 }}>
+                                <BarChart data={flowData} margin={{ top: 20, right: 30, left: 10, bottom: 50 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(var(--border))" opacity={0.3} />
                                     <XAxis
                                         dataKey="name"
                                         tick={{ fill: 'rgb(var(--text-secondary))', fontSize: 10, fontWeight: 600 }}
-                                        tickFormatter={(val) => val.length > 8 ? val.slice(0, 8) + '...' : val}
+                                        tickFormatter={(val) => val.length > 10 ? val.slice(0, 10) + '...' : val}
                                         axisLine={false}
                                         tickLine={false}
                                         dy={10}
                                         interval={0}
+                                        angle={-15}
+                                        textAnchor="end"
                                     />
                                     <YAxis
                                         tick={{ fill: 'rgb(var(--text-secondary))', fontSize: 10 }}
@@ -388,21 +390,23 @@ const Dashboard = () => {
                                         cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                                         content={({ active, payload, label }) => {
                                             if (active && payload && payload.length) {
+                                                const net = payload.find(p => p.dataKey === 'Net')?.value || 0;
+                                                const exp = payload.find(p => p.dataKey === 'Expenses')?.value || 0;
                                                 return (
                                                     <div className="bg-surface border border-border p-3 rounded-xl shadow-lg z-50">
-                                                        <p className="font-bold text-sm text-text-primary mb-2">{label}</p>
+                                                        <p className="font-bold text-sm text-text-primary mb-2 text-center border-b border-border pb-1">{label}</p>
                                                         <div className="space-y-1 text-xs">
                                                             <p className="text-emerald-500 font-bold flex justify-between gap-4">
-                                                                <span>Net:</span>
-                                                                <span>{displayCurrency}{payload[0].value.toLocaleString()}</span>
+                                                                <span>Net Profit:</span>
+                                                                <span>{displayCurrency}{net.toLocaleString()}</span>
                                                             </p>
                                                             <p className="text-red-500 font-bold flex justify-between gap-4">
-                                                                <span>Exp:</span>
-                                                                <span>{displayCurrency}{payload[1].value.toLocaleString()}</span>
+                                                                <span>Expenses:</span>
+                                                                <span>{displayCurrency}{exp.toLocaleString()}</span>
                                                             </p>
                                                             <div className="border-t border-border pt-1 mt-1 text-text-primary font-black flex justify-between gap-4">
-                                                                <span>Gross:</span>
-                                                                <span>{displayCurrency}{(payload[0].value + payload[1].value).toLocaleString()}</span>
+                                                                <span>Gross Rev:</span>
+                                                                <span>{displayCurrency}{(net + exp).toLocaleString()}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -415,10 +419,10 @@ const Dashboard = () => {
                                         align="right"
                                         verticalAlign="top"
                                         iconType="circle"
-                                        wrapperStyle={{ fontSize: '10px', top: 0 }}
+                                        wrapperStyle={{ fontSize: '10px', top: 0, right: 0 }}
                                     />
-                                    <Bar dataKey="Net" name="Profit" stackId="a" fill="#10B981" radius={[0, 0, 4, 4]} barSize={32} minPointSize={5} />
-                                    <Bar dataKey="Expenses" name="Cost" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={32} minPointSize={5} />
+                                    <Bar dataKey="Net" name="Profit" stackId="a" fill="#10B981" radius={[0, 0, 4, 4]} barSize={40} />
+                                    <Bar dataKey="Expenses" name="Cost" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={40} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
