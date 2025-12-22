@@ -386,33 +386,7 @@ const Chatbot = () => {
                 )}
             </button>
 
-            {/* External Voice Trigger (Visible when chat is closed) */}
-            {!isOpen && (
-                <button
-                    onClick={toggleVoiceInput}
-                    className={`absolute -top-16 right-0 p-3 rounded-full shadow-xl pointer-events-auto transition-all duration-300 hover:scale-110 ${isListening
-                        ? 'bg-red-500 text-white animate-pulse scale-110'
-                        : 'bg-surface border border-border text-brand-primary hover:bg-brand-primary hover:text-white'
-                        }`}
-                    title="Voice Command (Cmd+M)"
-                >
-                    {isListening ? (
-                        <div className="relative">
-                            <Mic className="h-5 w-5" />
-                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                            </span>
-                        </div>
-                    ) : (
-                        <div className="relative group/mic">
-                            <Mic className="h-5 w-5" />
-                            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-black/50 text-white px-1.5 py-0.5 rounded opacity-0 group-hover/mic:opacity-100 transition-opacity whitespace-nowrap">
-                                ⌘ M
-                            </span>
-                        </div>
-                    )}
-                </button>
-            )}
+
         </div>
     );
 };

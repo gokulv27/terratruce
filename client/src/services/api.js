@@ -1,4 +1,17 @@
 import { geocodeAddress, getLocationContext } from './geocoding';
+import { supabase } from './supabase';
+// User has 'crypto-js' usually? If not, I'll use a simple string hash function to avoid dependency if possible.
+// Actually, I can just use the location string as key if I sanitize it, but hash is safer for length.
+// Let's assume I can install it or use a simple hash.
+// Better: Just use the location string directly if it's < text limit. Locations are short.
+// But user requested "if some other user asks for the same query".
+// I'll stick to a simple string normalization + hash if needed, or just normalize string.
+// Let's use specific helper for hashing if crypto-js isn't there.
+// I'll assume standard Web Crypto API or just string key.
+// Let's use `btoa` base64 of normalized string as a poor man's hash or just the string if likely unique.
+// "key text primary key"
+// I will just use `normalizeLocation(location)` as the key.
+const normalizeKey = (str) => str.toLowerCase().trim().replace(/\s+/g, ' ');
 
 const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
 
@@ -58,7 +71,73 @@ export const extractAddressFromOCR = async (text) => {
   }
 };
 
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 Hours
+
+// Helper to generate unique cache keys (combining type + normalized location)
+const getCacheKey = (location, type) => `${type}:${normalizeKey(location)}`;
+
+const checkCache = async (key, type) => {
+  try {
+    // We query by the composite key string directly
+    const { data, error } = await supabase
+      .from('cache_entries')
+      .select('data, expires_at')
+      .eq('key', key)
+      // .eq('type', type) // Redundant if key is composite, but harmless.
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (error) {
+      // Silent fail for no rows
+      if (error.code !== 'PGRST116') console.warn("Cache check error:", error);
+      return null;
+    }
+    if (!data) return null;
+
+    console.log(`✅ Cache HIT for [${key}]`);
+    return data.data;
+  } catch (err) {
+    console.warn("Cache check failed", err);
+    return null;
+  }
+};
+
+const saveCache = async (key, type, data) => {
+  try {
+    const expiresAt = new Date(Date.now() + CACHE_DURATION).toISOString();
+    console.log(`💾 Saving to Cache [${key}]`);
+
+    const { error } = await supabase.from('cache_entries').upsert({
+      key, // This is now 'analysis:location'
+      type,
+      data,
+      expires_at: expiresAt
+    });
+
+    if (error) {
+      console.error("❌ Cache Save Error (Supabase):", error);
+    } else {
+      console.log("✅ Cache Saved Successfully");
+    }
+  } catch (err) {
+    console.warn("Cache save failed", err);
+  }
+};
+
 export const analyzePropertyRisk = async (location) => {
+  const cacheKey = getCacheKey(location, 'analysis');
+
+  // 1. Check Cache
+  const cached = await checkCache(cacheKey, 'analysis');
+  if (cached) {
+    return cached;
+  }
+
+  console.log(`🌐 Cache MISS for [${cacheKey}], fetching fresh data...`);
+
+  // 2. API Call (Proceed with existing logic)
+
+  // 2. API Call (Proceed with existing logic)
   // First, get enriched location data from OpenCage
   let locationData = null;
   let locationContext = `Location: ${location}`;
@@ -398,6 +477,9 @@ CRITICAL REQUIREMENTS:
       };
     }
 
+    // Save to Cache
+    await saveCache(cacheKey, 'analysis', parsedData);
+
     return parsedData;
 
   } catch (error) {
@@ -567,6 +649,15 @@ export const sendChatMessage = async (messages, context = {}) => {
     ...messages
   ];
 
+  const lastMsg = messages[messages.length - 1].content;
+  const cacheKey = normalizeKey(`${lastMsg}_${context.location || ''}`);
+
+  // 1. Check Cache
+  const cached = await checkCache(cacheKey, 'chat');
+  if (cached) {
+    return cached + " ⚡"; // Indicate cached status
+  }
+
   try {
     // Always use proxy endpoint (works in both dev and prod)
     const response = await fetch('/api/perplexity', {
@@ -589,7 +680,12 @@ export const sendChatMessage = async (messages, context = {}) => {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    const content = data.choices[0].message.content;
+
+    // Save to Cache
+    await saveCache(cacheKey, 'chat', content);
+
+    return content;
   } catch (error) {
     console.error("Chatbot API Error:", error);
     return "I'm having trouble connecting to the real estate network right now. Please try again in a moment. Debug: " + error.message;

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import LocationSearch from '../Search/LocationSearch';
 import { analyzePropertyRisk } from '../../services/api';
 import { usePortfolio } from '../../context/PortfolioContext';
+import { convertCurrency } from '../../utils/currencyUtils';
 
 const InvestmentCalculator = () => {
     const containerRef = useRef(null);
@@ -59,6 +60,15 @@ const InvestmentCalculator = () => {
             estimateValues(location.state.riskScore);
         }
     }, [location.state]);
+
+    const handleCurrencyChange = (newCurrency) => {
+        const oldCurrency = currency;
+        setPurchasePrice(prev => Math.round(convertCurrency(prev, oldCurrency, newCurrency)));
+        setDownPayment(prev => Math.round(convertCurrency(prev, oldCurrency, newCurrency)));
+        setRentalIncome(prev => Math.round(convertCurrency(prev, oldCurrency, newCurrency)));
+        setExpenses(prev => Math.round(convertCurrency(prev, oldCurrency, newCurrency)));
+        setCurrency(newCurrency);
+    };
 
     const handleDirectSearch = async (locName) => {
         if (!locName) return;
@@ -149,7 +159,7 @@ const InvestmentCalculator = () => {
                     </div>
                     <select
                         value={currency}
-                        onChange={(e) => setCurrency(e.target.value)}
+                        onChange={(e) => handleCurrencyChange(e.target.value)}
                         className="px-5 py-4 bg-surface-elevated border-2 border-border rounded-2xl font-bold text-text-primary outline-none cursor-pointer hover:border-brand-primary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/30 transition-all appearance-none text-center w-full md:w-24 shadow-md"
                     >
                         <option value="$">$ USD</option>
@@ -377,7 +387,17 @@ const InputGroup = ({ label, value, onChange, icon: Icon, prefix, suffix }) => (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-brand-primary">
                 <Icon className="h-4 w-4" />
             </div>
-            <input type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full pl-10 pr-8 py-3.5 bg-surface-elevated border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all shadow-sm" />
+            <input
+                type="number"
+                min="0"
+                value={value}
+                onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') onChange('');
+                    else onChange(Math.max(0, Number(val)));
+                }}
+                className="w-full pl-10 pr-8 py-3.5 bg-surface-elevated border border-border rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all shadow-sm"
+            />
             {prefix && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-text-secondary font-bold opacity-50">{prefix}</span>}
             {suffix && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-text-secondary font-bold opacity-50">{suffix}</span>}
         </div>
