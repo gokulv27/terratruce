@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './AuthContext';
+import { convertCurrency } from '../utils/currencyUtils';
 
 const PortfolioContext = createContext();
 
@@ -45,6 +46,7 @@ export const PortfolioProvider = ({ children }) => {
         const newItem = {
             id: user ? undefined : Date.now(), // Temp ID for guests
             user_id: user?.id,
+            property_name: property.propertyName,
             location: property.location,
             purchase_price: property.purchasePrice,
             monthly_cash_flow: property.monthlyCashFlow,
@@ -63,6 +65,7 @@ export const PortfolioProvider = ({ children }) => {
                     .from('portfolio')
                     .insert([{
                         user_id: user.id,
+                        property_name: newItem.property_name,
                         location: newItem.location,
                         purchase_price: newItem.purchase_price,
                         monthly_cash_flow: newItem.monthly_cash_flow,
@@ -121,12 +124,41 @@ export const PortfolioProvider = ({ children }) => {
             fetchPortfolio();
         }
     };
+    const updateVisitData = async (id, date, notes) => {
+        try {
+            // Optimistic Update
+            setPortfolio(prev => prev.map(item =>
+                item.id === id ? { ...item, last_visited: date, visit_notes: notes } : item
+            ));
+
+            if (user) {
+                const { error } = await supabase
+                    .from('portfolio')
+                    .update({ last_visited: date, visit_notes: notes })
+                    .eq('id', id);
+
+                if (error) throw error;
+            }
+        } catch (error) {
+            console.error('Error updating visit data:', error);
+            fetchPortfolio(); // Revert
+        }
+    };
+
+    const [globalCurrency, setGlobalCurrency] = useState('$');
 
     const getPortfolioSummary = () => {
         return portfolio.reduce((acc, item) => {
-            acc.totalAssets += (Number(item.purchase_price) || 0);
-            acc.monthlyCashFlow += (Number(item.monthly_cash_flow) || 0);
-            acc.monthlyCost += (Number(item.monthly_cost) || 0);
+            const itemCurrency = item.currency || '$';
+
+            // Convert each value to the global display currency
+            const price = convertCurrency(Number(item.purchase_price) || 0, itemCurrency, globalCurrency);
+            const cashFlow = convertCurrency(Number(item.monthly_cash_flow) || 0, itemCurrency, globalCurrency);
+            const cost = convertCurrency(Number(item.monthly_cost) || 0, itemCurrency, globalCurrency);
+
+            acc.totalAssets += price;
+            acc.monthlyCashFlow += cashFlow;
+            acc.monthlyCost += cost;
             return acc;
         }, { totalAssets: 0, monthlyCashFlow: 0, monthlyCost: 0 });
     };
@@ -137,7 +169,10 @@ export const PortfolioProvider = ({ children }) => {
         addToPortfolio,
         removeFromPortfolio,
         renameInPortfolio,
-        getPortfolioSummary
+        getPortfolioSummary,
+        updateVisitData,
+        globalCurrency,
+        setGlobalCurrency
     };
 
     return (

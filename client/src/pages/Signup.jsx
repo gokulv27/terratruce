@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Shield, Mail, Lock, Loader2, User, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import { eraseCookie } from '../utils/cookieUtils';
 
 const Signup = () => {
     const [fullName, setFullName] = useState('');
@@ -21,6 +22,8 @@ const Signup = () => {
 
         try {
             await signUp(email, password, fullName);
+            // Clear tutorial session cookie to force re-show for new user if they didn't complete it as guest
+            eraseCookie('terra_truce_tutorial_session');
             // If it worked, redirected or auto-logged in
             navigate('/');
         } catch (err) {

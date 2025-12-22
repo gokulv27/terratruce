@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+import { getCookie, setCookie } from '../../utils/cookieUtils';
+
 const steps = [
     {
         target: 'body', // General intro
@@ -37,26 +39,47 @@ const steps = [
 ];
 
 const Tutorial = () => {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     const [isVisible, setIsVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [styles, setStyles] = useState({});
 
     useEffect(() => {
         const checkVisibility = () => {
+            // Wait for auth to initialize
+            if (loading) return;
+
+            // 1. Completion check (Global)
+            const isCompleted = localStorage.getItem('terra_truce_tutorial_completed');
+            if (isCompleted) return;
+
+            // 2. Session check
+            const hasSeenSession = getCookie('terra_truce_tutorial_session');
+
+            // MEMORY TRANSFER: If user is logged in and has a valid session cookie, 
+            // ensure their permanent flag is set so they don't see it when cookie expires.
+            if (user && hasSeenSession) {
+                const hasSeenPermanently = localStorage.getItem(`tutorial_seen_${user.id}`);
+                if (!hasSeenPermanently) {
+                    localStorage.setItem(`tutorial_seen_${user.id}`, 'true');
+                }
+            }
+
+            if (hasSeenSession) return;
+
             if (!user) {
-                // Guest: Always show
+                // Guest: Show if no session cookie
                 setTimeout(() => setIsVisible(true), 1500);
             } else {
-                // User: Check if seen
-                const hasSeen = localStorage.getItem(`tutorial_seen_${user.id}`);
-                if (!hasSeen) {
+                // User: Check permanent flag
+                const hasSeenPermanently = localStorage.getItem(`tutorial_seen_${user.id}`);
+                if (!hasSeenPermanently) {
                     setTimeout(() => setIsVisible(true), 1500);
                 }
             }
         };
         checkVisibility();
-    }, [user]);
+    }, [user, loading]);
 
     const updateHighlight = () => {
         const step = steps[currentStep];
@@ -92,12 +115,17 @@ const Tutorial = () => {
         if (currentStep < steps.length - 1) {
             setCurrentStep(prev => prev + 1);
         } else {
+            // COMPLETION: Set permanent flag
+            localStorage.setItem('terra_truce_tutorial_completed', 'true');
             handleClose();
         }
     };
 
     const handleClose = () => {
         setIsVisible(false);
+        // DISMISSAL/SUCCESS: Always set session cookie to prevent re-show in same session
+        setCookie('terra_truce_tutorial_session', 'true', 1);
+
         if (user) {
             localStorage.setItem(`tutorial_seen_${user.id}`, 'true');
         }
