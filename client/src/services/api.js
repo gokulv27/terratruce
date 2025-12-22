@@ -541,14 +541,16 @@ export const sendChatMessage = async (messages, context = {}) => {
   1. **REAL ESTATE SEARCH**: 
      - **CRITICAL**: If the user asks to find/search properties but matches no specific location in their query AND 'Current Location Context' is 'Not specified': **YOU MUST ASK** "Where would you like to search?" first. **DO NOT** search for random locations.
      - If the user implies "around me" or "here", use 'User Geolocation' if available. If not available, ask for their city.
-     - Search for *real active listings* when location is known.
+     - **DIRECT LINKS**: You MUST provide direct links to the property listing on real estate portals (e.g., Zillow, Realtor.com, MagicBricks, Housing.com, Rightmove, etc.).
+     - **NO SEARCH ENGINES**: Do NOT provide links to search engine results (like Google, Bing, etc.). The user wants to land DIRECTLY on the property website.
+     - Use your search tools to find the actual listing URL.
      - **DO NOT USE BOLDING** (no asterisks **). Keep text clean.
-     - **LINKS**: Provide clickable links using this exact format: [[View Listing on Source]](URL). if specific URL is not found, create a Google Search link: [[Search for <Property Name>]](https://www.google.com/search?q=<Property Name>+real+estate).
+     - **LINKS**: Provide clickable links using this exact format: [[View Listing on <Site Name>]](URL).
      - **FORMAT**:
        1. Property Name - Price
        2. Location & Size
        3. Risk Rating: (Brief text)
-       4. [[Link Button]](URL)
+       4. [[View Listing on <Site Name>]](URL)
        
   2. **RISK ANALYSIS**: Explain risks simply without markdown bolding.
   

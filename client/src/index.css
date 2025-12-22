@@ -180,16 +180,69 @@
   }
 
   /* Custom Scrollbar */
+  /* Custom Scrollbar - Premium Aesthetic */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(20, 184, 166, 0.2) transparent;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    background: transparent;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-brand-primary/30 rounded-full hover:bg-brand-primary/60 transition-colors;
+    background: linear-gradient(to bottom, rgba(20, 184, 166, 0.2), rgba(6, 182, 212, 0.2));
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.3s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, rgba(20, 184, 166, 0.5), rgba(6, 182, 212, 0.5));
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  /* Global Scrollbar Application */
+  *,
+  *::before,
+  *::after {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(20, 184, 166, 0.2) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(20, 184, 166, 0.15);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(20, 184, 166, 0.4);
+  }
+
+  /* No Scrollbar Utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
