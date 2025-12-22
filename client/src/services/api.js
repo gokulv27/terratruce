@@ -426,14 +426,13 @@ CRITICAL REQUIREMENTS:
       'Content-Type': 'application/json'
     };
 
-    // In dev, the proxy handles the API key. In prod, we might need to send it if not handled by backend.
-    // Assuming PROXY_URL handles auth in prod, or we send it. 
-    // If prod uses backend proxy, we don't send key. If prod goes direct (unlikely due to CORS), we would.
-    // For now, let's assume we only add the key if we are NOT using the dev proxy AND we have a key.
-    // Actually, simply: don't send Authorization header if using dev proxy (Vite config adds it).
-    if (isProd && PERPLEXITY_API_KEY) {
+    // ROBUST FIX: Always inject the API key from client-side env if available.
+    // This bypasses strict reliance on the Vite Proxy to inject headers, which can be flaky with env/mode issues.
+    if (PERPLEXITY_API_KEY) {
       headers['Authorization'] = `Bearer ${PERPLEXITY_API_KEY}`;
     }
+
+    console.log(`🌐 Calling Perplexity API [Proxy: ${url}] [Key Present: ${!!PERPLEXITY_API_KEY}]`);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -454,8 +453,9 @@ CRITICAL REQUIREMENTS:
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Perplexity API Error:", errText);
-      throw new Error(`API request failed: ${response.status}`);
+      console.error("❌ Perplexity API FAILED:", response.status, response.statusText);
+      console.error("❌ Error Details:", errText);
+      throw new Error(`API request failed: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();

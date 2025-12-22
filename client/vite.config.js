@@ -4,6 +4,14 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  console.log("🔑 VITE CONFIG LOADED");
+  console.log("🔑 API KEY PRESENT:", !!env.VITE_PERPLEXITY_API_KEY);
+  if (env.VITE_PERPLEXITY_API_KEY) {
+    console.log("🔑 KEY START:", env.VITE_PERPLEXITY_API_KEY.substring(0, 5) + "...");
+  } else {
+    console.error("❌ API KEY MISSING IN CONFIG");
+  }
+
   return {
     plugins: [react()],
     server: {
