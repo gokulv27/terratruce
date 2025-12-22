@@ -7,6 +7,7 @@ const AnalysisContext = createContext();
 export const AnalysisProvider = ({ children }) => {
     const { user } = useAuth();
     const [history, setHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(true);
     const [analysisState, setAnalysisState] = useState({
         location: '',
         riskData: null,
@@ -35,8 +36,11 @@ export const AnalysisProvider = ({ children }) => {
         const currentUserId = userIdRef.current;
         if (!currentUserId) {
             setHistory([]);
+            setHistoryLoading(false);
             return;
         }
+
+        setHistoryLoading(true);
 
         try {
             const { data, error } = await supabase
@@ -52,10 +56,20 @@ export const AnalysisProvider = ({ children }) => {
             }
 
             if (data) {
-                setHistory(data);
+                // Deduplicate on client side to be safe
+                const seen = new Set();
+                const uniqueData = data.filter(item => {
+                    const normalized = item.location_name.toLowerCase().trim();
+                    if (seen.has(normalized)) return false;
+                    seen.add(normalized);
+                    return true;
+                });
+                setHistory(uniqueData);
             }
         } catch (err) {
             console.error("Critical History Fetch Error:", err);
+        } finally {
+            setHistoryLoading(false);
         }
     }, []);
 
@@ -74,9 +88,18 @@ export const AnalysisProvider = ({ children }) => {
 
         try {
             const validRiskScore = typeof riskScore === 'number' ? Math.round(riskScore) : null;
+            const normalizedLocation = locationName.trim();
 
+            // 1. Remove existing entry for this location to prevent duplicates (and move to top)
+            await supabase
+                .from('search_history')
+                .delete()
+                .eq('user_id', currentUserId)
+                .ilike('location_name', normalizedLocation);
+
+            // 2. Insert new entry
             const { error } = await supabase.from('search_history').insert([{
-                location_name: locationName.trim(),
+                location_name: normalizedLocation,
                 user_id: currentUserId,
                 risk_score: validRiskScore
             }]);
@@ -117,7 +140,10 @@ export const AnalysisProvider = ({ children }) => {
             history,
             fetchHistory,
             addToHistory,
-            clearHistory
+            fetchHistory,
+            addToHistory,
+            clearHistory,
+            historyLoading
         }}>
             {children}
         </AnalysisContext.Provider>

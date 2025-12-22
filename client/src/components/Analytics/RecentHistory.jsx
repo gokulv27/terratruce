@@ -2,57 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { Clock, MapPin, ArrowRight, Trash2, Search, Sparkles } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useAnalysis } from '../../context/AnalysisContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const RecentHistory = ({ fullWidth = false }) => {
     const { user } = useAuth();
-    const [history, setHistory] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { history, clearHistory: contextClearHistory, historyLoading } = useAnalysis();
     const navigate = useNavigate();
-
-    const fetchHistory = async () => {
-        if (!user) return;
-        setLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('search_history')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(20);
-
-            if (error) throw error;
-            setHistory(data || []);
-        } catch (err) {
-            console.error('Error fetching history:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchHistory();
-    }, [user]);
 
     const handleHistoryClick = (item) => {
         navigate('/analyze', { state: { query: item.location_name } });
     };
 
-    const clearHistory = async () => {
+    const handleClearHistory = async () => {
         if (!user) return;
         if (!window.confirm('Are you sure you want to clear your search history?')) return;
-
-        try {
-            const { error } = await supabase
-                .from('search_history')
-                .delete()
-                .eq('user_id', user.id);
-
-            if (error) throw error;
-            setHistory([]);
-        } catch (err) {
-            console.error('Error clearing history:', err);
-        }
+        await contextClearHistory();
     };
 
     if (!user) return null;
@@ -71,7 +37,7 @@ const RecentHistory = ({ fullWidth = false }) => {
                 </div>
                 {history.length > 0 && (
                     <button
-                        onClick={clearHistory}
+                        onClick={handleClearHistory}
                         className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -80,7 +46,7 @@ const RecentHistory = ({ fullWidth = false }) => {
                 )}
             </div>
 
-            {loading ? (
+            {historyLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map((i) => (
                         <div key={i} className="h-24 bg-surface-elevated animate-pulse rounded-2xl border border-border" />
