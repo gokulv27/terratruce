@@ -38,6 +38,7 @@ const InvestmentCalculator = () => {
     const [saved, setSaved] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [investmentName, setInvestmentName] = useState('');
+    const [investmentLocation, setInvestmentLocation] = useState('');
 
     const estimateValues = (score) => {
         if (!score) return;
@@ -170,7 +171,8 @@ const InvestmentCalculator = () => {
 
                     <button
                         onClick={() => {
-                            setInvestmentName(currentLocation || 'My Investment');
+                            setInvestmentName('');
+                            setInvestmentLocation(currentLocation);
                             setIsModalOpen(true);
                         }}
                         className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl active:scale-95 whitespace-nowrap ${saved ? 'bg-green-500 text-white shadow-green-500/40' : 'bg-gradient-to-r from-surface-elevated to-surface border-2 border-border hover:border-brand-primary hover:text-brand-primary hover:shadow-brand-primary/20'}`}
@@ -320,13 +322,26 @@ const InvestmentCalculator = () => {
                                         type="text"
                                         value={investmentName}
                                         onChange={(e) => setInvestmentName(e.target.value)}
-                                        placeholder="e.g., Downtown Apartment, Beach House..."
-                                        className="w-full px-4 py-3.5 bg-surface-elevated border-2 border-border rounded-xl text-text-primary font-bold focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/20 transition-all"
+                                        placeholder="e.g., Downtown Apartment"
+                                        className="w-full px-4 py-3.5 bg-surface-elevated border-2 border-border rounded-xl text-text-primary font-bold focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/20 transition-all mb-4"
                                         autoFocus
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-text-secondary ml-1 mb-2 block">
+                                        Property Location
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={investmentLocation}
+                                        onChange={(e) => setInvestmentLocation(e.target.value)}
+                                        placeholder="e.g., San Francisco, CA"
+                                        className="w-full px-4 py-3.5 bg-surface-elevated border-2 border-border rounded-xl text-text-primary font-bold focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/20 transition-all"
                                         onKeyPress={(e) => {
-                                            if (e.key === 'Enter' && investmentName.trim()) {
+                                            if (e.key === 'Enter' && investmentName.trim() && investmentLocation.trim()) {
                                                 addToPortfolio({
-                                                    location: investmentName.trim(),
+                                                    propertyName: investmentName.trim(),
+                                                    location: investmentLocation.trim(),
                                                     purchasePrice,
                                                     monthlyCashFlow: metrics.monthlyCashFlow,
                                                     monthlyCost: expenses + metrics.mortgagePayment,
@@ -350,9 +365,10 @@ const InvestmentCalculator = () => {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            if (investmentName.trim()) {
+                                            if (investmentName.trim() && investmentLocation.trim()) {
                                                 addToPortfolio({
-                                                    location: investmentName.trim(),
+                                                    propertyName: investmentName.trim(),
+                                                    location: investmentLocation.trim(),
                                                     purchasePrice,
                                                     monthlyCashFlow: metrics.monthlyCashFlow,
                                                     monthlyCost: expenses + metrics.mortgagePayment,
@@ -364,7 +380,7 @@ const InvestmentCalculator = () => {
                                                 setTimeout(() => setSaved(false), 2000);
                                             }
                                         }}
-                                        disabled={!investmentName.trim()}
+                                        disabled={!investmentName.trim() || !investmentLocation.trim()}
                                         className="flex-1 px-6 py-3.5 bg-gradient-to-r from-brand-primary to-brand-secondary text-white rounded-xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                                     >
                                         <Check className="h-5 w-5" />
