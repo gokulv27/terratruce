@@ -286,7 +286,7 @@ const Chatbot = () => {
                                                             href={match[2]}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1 my-2 px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-lg hover:bg-brand-secondary transition-all shadow-md hover:scale-105 no-underline decoration-0"
+                                                            className="inline-flex items-center gap-1 mt-1 mb-1 px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-lg hover:bg-brand-secondary transition-all shadow-md hover:scale-105 no-underline decoration-0 whitespace-nowrap"
                                                         >
                                                             {match[1]}
                                                             <span className="text-[10px] opacity-70 ml-1">↗</span>
