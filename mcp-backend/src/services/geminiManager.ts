@@ -1,0 +1,394 @@
+/**
+ * =====================================================
+ * GEMINI API LIMITS & QUOTAS (as of Dec 2024)
+ * =====================================================
+ * 
+ * Gemini 2.0 Flash (Free Tier):
+ * - 15 RPM (Requests Per Minute)
+ * - 1 million TPM (Tokens Per Minute)
+ * - 1,500 RPD (Requests Per Day)
+ * 
+ * Gemini 2.0 Flash (Paid Tier):
+ * - 1,000 RPM
+ * - 4 million TPM
+ * - No daily limit
+ * 
+ * Vision API:
+ * - Same limits as text
+ * - Max image size: 20MB
+ * - Supported: PNG, JPEG, WEBP, HEIC, HEIF
+ * 
+ * Error Codes:
+ * - 429: Rate limit exceeded (retry with different key)
+ * - 403: Quota exceeded or invalid key
+ * - 503: Service temporarily unavailable
+ * =====================================================
+ */
+
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+interface KeyConfig {
+  key: string;
+  rpm?: number;      // Requests per minute (custom limit)
+  tpm?: number;      // Tokens per minute (custom limit)
+  rpd?: number;      // Requests per day (custom limit)
+}
+
+interface KeyUsageStats {
+  requestCount: number;
+  tokenCount: number;
+  dailyRequests: number;
+  lastReset: Date;
+  lastDailyReset: Date;
+}
+
+interface GeminiConfig {
+  primaryKey: KeyConfig;
+  backupKeys: KeyConfig[];
+  currentIndex: number;
+  isDev: boolean;
+}
+
+class GeminiManager {
+  private config: GeminiConfig;
+  private clients: Map<string, GoogleGenerativeAI> = new Map();
+  private usage: Map<string, KeyUsageStats> = new Map();
+
+  constructor() {
+    const isDev = process.env.NODE_ENV !== 'production';
+    
+    // Parse primary key with optional limits
+    const primaryKeyStr = process.env.GEMINI_PRIMARY_KEY;
+    if (!primaryKeyStr) {
+      throw new Error('GEMINI_PRIMARY_KEY is required in .env');
+    }
+
+    const primaryKey = this.parseKeyConfig(primaryKeyStr, 'primary');
+
+    // Parse backup keys with optional limits
+    const backupKeysStr = process.env.GEMINI_BACKUP_KEYS || '';
+    const backupKeys = backupKeysStr
+      .split(',')
+      .filter(k => k.trim())
+      .map((k, idx) => this.parseKeyConfig(k.trim(), `backup-${idx}`));
+
+    this.config = {
+      primaryKey,
+      backupKeys,
+      currentIndex: 0,
+      isDev
+    };
+
+    // Initialize clients and usage tracking
+    this.initializeClient('primary', primaryKey.key);
+    backupKeys.forEach((keyConfig, idx) => {
+      this.initializeClient(`backup-${idx}`, keyConfig.key);
+    });
+
+    console.log(`[GeminiManager] Initialized with 1 primary + ${backupKeys.length} backup keys`);
+    if (isDev) {
+      console.log('[GeminiManager] 🔧 DEV MODE: Token monitoring enabled');
+    }
+  }
+
+  /**
+   * Parse key config from env string
+   * Format: "key" or "key|rpm:15|tpm:1000000|rpd:1500"
+   */
+  private parseKeyConfig(configStr: string, id: string): KeyConfig {
+    const parts = configStr.split('|');
+    const key = parts[0];
+    
+    const config: KeyConfig = { key };
+
+    // Parse optional limits
+    parts.slice(1).forEach(part => {
+      const [limitType, value] = part.split(':');
+      const numValue = parseInt(value, 10);
+      
+      if (limitType === 'rpm') config.rpm = numValue;
+      else if (limitType === 'tpm') config.tpm = numValue;
+      else if (limitType === 'rpd') config.rpd = numValue;
+    });
+
+    return config;
+  }
+
+  private initializeClient(id: string, key: string) {
+    this.clients.set(id, new GoogleGenerativeAI(key));
+    this.usage.set(id, {
+      requestCount: 0,
+      tokenCount: 0,
+      dailyRequests: 0,
+      lastReset: new Date(),
+      lastDailyReset: new Date()
+    });
+  }
+
+  /**
+   * Check if key has exceeded custom limits
+   */
+  private checkLimits(keyId: string, keyConfig: KeyConfig): boolean {
+    const stats = this.usage.get(keyId);
+    if (!stats) return true;
+
+    const now = new Date();
+    
+    // Reset minute counter if needed
+    if (now.getTime() - stats.lastReset.getTime() > 60000) {
+      stats.requestCount = 0;
+      stats.tokenCount = 0;
+      stats.lastReset = now;
+    }
+
+    // Reset daily counter if needed
+    if (now.getTime() - stats.lastDailyReset.getTime() > 86400000) {
+      stats.dailyRequests = 0;
+      stats.lastDailyReset = now;
+    }
+
+    // Check custom limits
+    if (keyConfig.rpm && stats.requestCount >= keyConfig.rpm) {
+      if (this.config.isDev) {
+        console.warn(`[GeminiManager] ⚠️ Key ${keyId} RPM limit reached: ${stats.requestCount}/${keyConfig.rpm}`);
+      }
+      return false;
+    }
+
+    if (keyConfig.rpd && stats.dailyRequests >= keyConfig.rpd) {
+      if (this.config.isDev) {
+        console.warn(`[GeminiManager] ⚠️ Key ${keyId} daily limit reached: ${stats.dailyRequests}/${keyConfig.rpd}`);
+      }
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Track usage for a key
+   */
+  private trackUsage(keyId: string, estimatedTokens: number = 100) {
+    const stats = this.usage.get(keyId);
+    if (!stats) return;
+
+    stats.requestCount++;
+    stats.dailyRequests++;
+    stats.tokenCount += estimatedTokens;
+
+    if (this.config.isDev) {
+      console.log(`[GeminiManager] 📊 ${keyId}: ${stats.requestCount} req/min, ${stats.dailyRequests} req/day, ~${stats.tokenCount} tokens/min`);
+    }
+  }
+
+  /**
+   * Get primary client for lightweight operations (chatbot, simple queries)
+   */
+  getPrimaryClient(): GoogleGenerativeAI {
+    return this.clients.get('primary')!;
+  }
+
+  /**
+   * Round-robin selection from backup pool for heavy operations
+   */
+  private getNextBackupClient(): { client: GoogleGenerativeAI; id: string; config: KeyConfig } | null {
+    if (this.config.backupKeys.length === 0) {
+      return null;
+    }
+
+    const idx = this.config.currentIndex;
+    const keyConfig = this.config.backupKeys[idx];
+    const id = `backup-${idx}`;
+    const client = this.clients.get(id)!;
+    
+    this.config.currentIndex = (this.config.currentIndex + 1) % this.config.backupKeys.length;
+    
+    return { client, id, config: keyConfig };
+  }
+
+  /**
+   * Generate text with automatic failover
+   * Uses primary key first, then rotates through backups on failure
+   */
+  async generateText(prompt: string, usePrimary: boolean = true): Promise<string> {
+    const keysToTry: Array<{ client: GoogleGenerativeAI; id: string; config: KeyConfig }> = [];
+    
+    if (usePrimary) {
+      // Check primary key limits
+      if (this.checkLimits('primary', this.config.primaryKey)) {
+        keysToTry.push({
+          client: this.getPrimaryClient(),
+          id: 'primary',
+          config: this.config.primaryKey
+        });
+      } else if (this.config.isDev) {
+        console.warn('[GeminiManager] ⚠️ Primary key limit exceeded, using backups');
+      }
+    }
+    
+    // Add all backup keys to rotation
+    for (let i = 0; i < this.config.backupKeys.length; i++) {
+      const backup = this.getNextBackupClient();
+      if (backup && this.checkLimits(backup.id, backup.config)) {
+        keysToTry.push(backup);
+      }
+    }
+
+    if (keysToTry.length === 0) {
+      throw new Error('All API keys have exceeded their limits. Please wait or add more keys.');
+    }
+
+    let lastError: Error | null = null;
+
+    for (const { client, id, config } of keysToTry) {
+      try {
+        const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        
+        // Track usage
+        this.trackUsage(id, prompt.length + text.length);
+        
+        if (this.config.isDev) {
+          console.log(`[GeminiManager] ✅ Success with key ${id}`);
+        }
+        
+        return text;
+
+      } catch (error: any) {
+        const isRateLimit = error?.status === 429 || error?.message?.includes('429');
+        const isQuotaError = error?.status === 403 || error?.message?.includes('quota');
+        
+        if (isRateLimit || isQuotaError) {
+          if (this.config.isDev) {
+            console.warn(`[GeminiManager] ⚠️ Key ${id} failed (${error.status}), rotating...`);
+          }
+          lastError = error;
+          continue; // Try next key
+        }
+        
+        // For other errors, throw immediately
+        throw error;
+      }
+    }
+
+    // All keys exhausted
+    throw new Error(`All Gemini API keys exhausted. Last error: ${lastError?.message}`);
+  }
+
+  /**
+   * Analyze image with vision model
+   * Always uses backup keys to preserve primary for chatbot
+   */
+  async analyzeImage(imageData: string, prompt: string, mimeType: string = 'image/jpeg'): Promise<string> {
+    const backupClients: Array<{ client: GoogleGenerativeAI; id: string; config: KeyConfig }> = [];
+    
+    // Use only backup keys for vision (token-heavy)
+    for (let i = 0; i < this.config.backupKeys.length; i++) {
+      const backup = this.getNextBackupClient();
+      if (backup && this.checkLimits(backup.id, backup.config)) {
+        backupClients.push(backup);
+      }
+    }
+
+    if (backupClients.length === 0) {
+      // Fallback to primary if no backups available
+      if (this.checkLimits('primary', this.config.primaryKey)) {
+        backupClients.push({
+          client: this.getPrimaryClient(),
+          id: 'primary',
+          config: this.config.primaryKey
+        });
+        if (this.config.isDev) {
+          console.warn('[GeminiManager] ⚠️ No backup keys available, using primary for vision');
+        }
+      } else {
+        throw new Error('All vision API keys have exceeded their limits');
+      }
+    }
+
+    let lastError: Error | null = null;
+
+    for (const { client, id } of backupClients) {
+      try {
+        const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        
+        const result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: imageData,
+              mimeType
+            }
+          }
+        ]);
+
+        const text = result.response.text();
+        
+        // Track usage (vision uses more tokens)
+        this.trackUsage(id, 1000); // Estimate 1000 tokens for vision
+        
+        if (this.config.isDev) {
+          console.log(`[GeminiManager] ✅ Vision success with ${id}`);
+        }
+        
+        return text;
+
+      } catch (error: any) {
+        const isRateLimit = error?.status === 429;
+        const isQuotaError = error?.status === 403;
+        
+        if (isRateLimit || isQuotaError) {
+          if (this.config.isDev) {
+            console.warn(`[GeminiManager] ⚠️ Vision key ${id} failed, rotating...`);
+          }
+          lastError = error;
+          continue;
+        }
+        
+        throw error;
+      }
+    }
+
+    throw new Error(`All vision API keys exhausted. Last error: ${lastError?.message}`);
+  }
+
+  /**
+   * Get current usage stats (DEV MODE ONLY)
+   */
+  getUsageStats() {
+    if (!this.config.isDev) {
+      return { message: 'Usage stats only available in development mode' };
+    }
+
+    const stats: any = {
+      environment: 'development',
+      primary: {
+        key: this.config.primaryKey.key.slice(0, 10) + '...',
+        limits: {
+          rpm: this.config.primaryKey.rpm || 'default (15)',
+          tpm: this.config.primaryKey.tpm || 'default (1M)',
+          rpd: this.config.primaryKey.rpd || 'default (1500)'
+        },
+        usage: this.usage.get('primary')
+      },
+      backups: this.config.backupKeys.map((keyConfig, idx) => ({
+        id: `backup-${idx}`,
+        key: keyConfig.key.slice(0, 10) + '...',
+        limits: {
+          rpm: keyConfig.rpm || 'default (15)',
+          tpm: keyConfig.tpm || 'default (1M)',
+          rpd: keyConfig.rpd || 'default (1500)'
+        },
+        usage: this.usage.get(`backup-${idx}`)
+      })),
+      currentBackupIndex: this.config.currentIndex
+    };
+
+    return stats;
+  }
+}
+
+// Singleton instance
+export const geminiManager = new GeminiManager();
