@@ -97,23 +97,27 @@ try {
 console.log('\n💾 Redis Cache');
 console.log('-'.repeat(50));
 
-try {
-  await redis.ping();
-  pass('REDIS', 'Connected successfully');
-  
-  // Test set/get
-  await redis.set('test_key', 'test_value', 'EX', 10);
-  const value = await redis.get('test_key');
-  
-  if (value === 'test_value') {
-    pass('REDIS', 'Read/Write operations working');
-  } else {
-    fail('REDIS', 'Read/Write test failed');
+if (!redis) {
+  warn('REDIS', 'Not available - using in-memory cache');
+} else {
+  try {
+    await redis.ping();
+    pass('REDIS', 'Connected successfully');
+    
+    // Test set/get
+    await redis.set('test_key', 'test_value', 'EX', 10);
+    const value = await redis.get('test_key');
+    
+    if (value === 'test_value') {
+      pass('REDIS', 'Read/Write operations working');
+    } else {
+      fail('REDIS', 'Read/Write test failed');
+    }
+    
+    await redis.del('test_key');
+  } catch (error: any) {
+    warn('REDIS', `Not available: ${error.message}. Caching will be disabled.`);
   }
-  
-  await redis.del('test_key');
-} catch (error: any) {
-  warn('REDIS', `Not available: ${error.message}. Caching will be disabled.`);
 }
 
 // 4. Gemini AI
