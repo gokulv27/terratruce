@@ -207,6 +207,114 @@ app.post('/api/schedule-visit', async (req, res) => {
   }
 });
 
+// --- Calendar CRUD Endpoints ---
+
+// LIST Visits
+app.get('/api/visits', async (req, res) => {
+  try {
+    const { user_email } = req.query;
+    console.log(`[API] Fetching visits for: ${user_email || 'ALL'}`);
+
+    let query = supabase!.from('geo_core.visits').select('*').order('visit_time', { ascending: true });
+    
+    // Fallback logic for table name if needed, but for list we try primary first
+    // If we really wanted robust fallback we'd need a helper, but assuming geo_core exists from previous tool usage
+    if (user_email) {
+      query = query.eq('user_email', user_email);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+       // Try fallback to public 'visits'
+       if (error.code === '42P01') {
+           console.warn('[API] geo_core.visits not found, trying public.visits');
+           let fallbackQuery = supabase!.from('visits').select('*').order('visit_time', { ascending: true });
+           if (user_email) fallbackQuery = fallbackQuery.eq('user_email', user_email);
+           const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+           if (fallbackError) throw fallbackError;
+           return res.json({ success: true, data: fallbackData });
+       }
+       throw error;
+    }
+
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('[API] Error fetching visits:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// UPDATE Visit
+app.put('/api/visits/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { visit_time, notes, status } = req.body;
+    console.log(`[API] Updating visit ${id}`, { visit_time, notes, status });
+
+    const updates: any = {};
+    if (visit_time) updates.visit_time = visit_time;
+    if (notes !== undefined) updates.notes = notes;
+    if (status) updates.status = status;
+
+    // Try geo_core first
+    const { data, error } = await supabase!
+      .from('geo_core.visits')
+      .update(updates)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+        if (error.code === '42P01') {
+            const { data: fallbackData, error: fallbackError } = await supabase!
+                .from('visits')
+                .update(updates)
+                .eq('id', id)
+                .select();
+            if (fallbackError) throw fallbackError;
+            return res.json({ success: true, data: fallbackData });
+        }
+        throw error;
+    }
+
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('[API] Error updating visit:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE Visit
+app.delete('/api/visits/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`[API] Deleting visit ${id}`);
+
+    // Try geo_core first
+    const { error } = await supabase!
+      .from('geo_core.visits')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+        if (error.code === '42P01') {
+             const { error: fallbackError } = await supabase!
+                .from('visits')
+                .delete()
+                .eq('id', id);
+             if (fallbackError) throw fallbackError;
+             return res.json({ success: true, message: 'Visit cancelled (fallback)' });
+        }
+        throw error;
+    }
+
+    res.json({ success: true, message: 'Visit cancelled' });
+  } catch (error: any) {
+    console.error('[API] Error deleting visit:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Web Search Endpoint
 app.post('/api/search', async (req, res) => {
   try {

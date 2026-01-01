@@ -41,6 +41,11 @@ import {
   ScheduleSiteVisitSchema
 } from './tools/scheduleTool.js';
 
+import {
+  sendGeneralEmail,
+  SendEmailSchema
+} from './tools/emailTools.js';
+
 // =====================================================
 // MCP SERVER SETUP
 // =====================================================
@@ -208,6 +213,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
         required: ['property_address', 'user_email', 'date_time']
       }
+    },
+    {
+      name: 'send_email',
+      description: 'Send a general email using Resend (supports HTML, CC, BCC, etc.)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          to: {
+            anyOf: [
+              { type: 'string', format: 'email' },
+              { type: 'array', items: { type: 'string', format: 'email' } }
+            ],
+            description: 'Recipient email address(es)'
+          },
+          subject: {
+            type: 'string',
+            description: 'Email subject'
+          },
+          html: {
+            type: 'string',
+            description: 'HTML content'
+          },
+          text: {
+            type: 'string',
+            description: 'Plain text content'
+          },
+          cc: {
+             anyOf: [
+              { type: 'string', format: 'email' },
+              { type: 'array', items: { type: 'string', format: 'email' } }
+            ],
+          },
+           bcc: {
+             anyOf: [
+              { type: 'string', format: 'email' },
+              { type: 'array', items: { type: 'string', format: 'email' } }
+            ],
+          }
+        },
+        required: ['to', 'subject', 'html']
+      }
     }
   ];
 
@@ -321,6 +367,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'schedule_site_visit': {
         const validated = ScheduleSiteVisitSchema.parse(args);
         result = await scheduleSiteVisit(validated);
+        break;
+      }
+
+      case 'send_email': {
+        const validated = SendEmailSchema.parse(args);
+        result = await sendGeneralEmail(validated);
         break;
       }
 
