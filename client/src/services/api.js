@@ -11,6 +11,13 @@ const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
  */
 const PROXY_URL = '/api/perplexity';
 
+// Initialization Check
+if (!supabase) {
+  console.warn('⚠️ Supabase client failed to initialize. Cache features will be disabled.');
+} else {
+  console.log('✅ Supabase client connected');
+}
+
 /**
  * Extracts a property address from raw OCR text using Perplexity.
  */
@@ -88,25 +95,52 @@ const checkCache = async (key, type) => {
   }
 };
 
+const cleanupExpiredCache = async () => {
+  try {
+    const { error } = await supabase
+      .from('cache_entries')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+
+    if (error) {
+      console.warn('⚠️ Cache cleanup failed:', error);
+    } else {
+      console.log('🧹 Expired cache entries cleaned');
+    }
+  } catch (err) {
+    console.warn('Cache cleanup error:', err);
+  }
+};
+
 const saveCache = async (key, type, data) => {
   try {
     const expiresAt = new Date(Date.now() + CACHE_DURATION).toISOString();
-    console.log(`💾 Saving to Cache [${key}]`);
+    const createdAt = new Date().toISOString();
+    console.log(`💾 Refreshing Cache Entry [${key}]`);
 
-    const { error } = await supabase.from('cache_entries').upsert({
+    // 1. Delete existing entry if any
+    await supabase.from('cache_entries').delete().eq('key', key);
+
+    // 2. Insert fresh entry with new timestamps
+    const { error } = await supabase.from('cache_entries').insert({
       key,
       type,
       data,
       expires_at: expiresAt,
+      created_at: createdAt,
     });
 
     if (error) {
-      console.error('❌ Cache Save Error (Supabase):', error);
+      if (error.code === '42501') {
+        console.error('❌ Supabase RLS Policy Violation: "cache_entries" table does not allow updates/deletes for anon role. Please check your RLS policies.');
+      } else {
+        console.error('❌ Cache Refresh Error (Supabase):', error);
+      }
     } else {
-      console.log('✅ Cache Saved Successfully');
+      console.log('✅ Cache Refreshed Successfully');
     }
   } catch (err) {
-    console.warn('Cache save failed', err);
+    console.warn('Cache refresh failed', err);
   }
 };
 
@@ -115,8 +149,14 @@ export const analyzePropertyRisk = async (location) => {
 
   const cached = await checkCache(cacheKey, 'analysis');
   if (cached) {
+    console.log(`✅ Refreshing cache for [${cacheKey}]...`);
+    // Refresh cache expiry on hit (AWAIT this to ensure it completes)
+    await saveCache(cacheKey, 'analysis', cached);
     return cached;
   }
+
+  // Cleanup expired entries before fetching new data
+  cleanupExpiredCache();
 
   console.log(`🌐 Cache MISS for [${cacheKey}], fetching fresh data...`);
 
@@ -701,8 +741,14 @@ ${contextString.trim()}`;
 
   const cached = await checkCache(cacheKey, 'chat');
   if (cached) {
+    console.log(`✅ Refreshing cache for chat message [${cacheKey}]...`);
+    // Refresh cache expiry on hit (AWAIT this)
+    await saveCache(cacheKey, 'chat', cached);
     return cached + ' ⚡';
   }
+
+  // Cleanup expired entries
+  cleanupExpiredCache();
 
   try {
     const response = await fetch(
