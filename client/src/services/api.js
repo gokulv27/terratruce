@@ -36,25 +36,27 @@ export const extractAddressFromOCR = async (text) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': isProd ? undefined : `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json'
+        Authorization: isProd ? undefined : `Bearer ${PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "sonar-pro",
+        model: 'sonar-pro',
         messages: [
-          { role: "system", content: "精确提取助手。仅输出地址或 'No address found'。" },
-          { role: "user", content: prompt }
+          { role: 'system', content: "精确提取助手。仅输出地址或 'No address found'。" },
+          { role: 'user', content: prompt },
         ],
-        temperature: 0.1
-      })
+        temperature: 0.1,
+      }),
     });
 
     const data = await response.json();
-    const content = data.choices ? data.choices[0].message.content : (data.error || "No address found");
+    const content = data.choices
+      ? data.choices[0].message.content
+      : data.error || 'No address found';
     return content.trim();
   } catch (error) {
-    console.error("Error extracting address:", error);
-    return "No address found";
+    console.error('Error extracting address:', error);
+    return 'No address found';
   }
 };
 
@@ -73,7 +75,7 @@ const checkCache = async (key, type) => {
       .single();
 
     if (error) {
-      if (error.code !== 'PGRST116') console.warn("Cache check error:", error);
+      if (error.code !== 'PGRST116') console.warn('Cache check error:', error);
       return null;
     }
     if (!data) return null;
@@ -81,7 +83,7 @@ const checkCache = async (key, type) => {
     console.log(`✅ Cache HIT for [${key}]`);
     return data.data;
   } catch (err) {
-    console.warn("Cache check failed", err);
+    console.warn('Cache check failed', err);
     return null;
   }
 };
@@ -95,16 +97,16 @@ const saveCache = async (key, type, data) => {
       key,
       type,
       data,
-      expires_at: expiresAt
+      expires_at: expiresAt,
     });
 
     if (error) {
-      console.error("❌ Cache Save Error (Supabase):", error);
+      console.error('❌ Cache Save Error (Supabase):', error);
     } else {
-      console.log("✅ Cache Saved Successfully");
+      console.log('✅ Cache Saved Successfully');
     }
   } catch (err) {
-    console.warn("Cache save failed", err);
+    console.warn('Cache save failed', err);
   }
 };
 
@@ -419,29 +421,32 @@ ${locationContext}
       method: 'POST',
       headers: headers,
       body: JSON.stringify({
-        model: "sonar-pro",
+        model: 'sonar-pro',
         messages: [
           {
-            role: "system",
-            content: "房地产分析专家。严禁markdown。仅输出有效的英文JSON。"
+            role: 'system',
+            content: '房地产分析专家。严禁markdown。仅输出有效的英文JSON。',
           },
-          { role: "user", content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.1,
-        max_tokens: 3000
-      })
+        max_tokens: 3000,
+      }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("❌ Perplexity API FAILED:", response.status, response.statusText);
+      console.error('❌ Perplexity API FAILED:', response.status, response.statusText);
       throw new Error(`API request failed: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
     let content = data.choices[0].message.content;
 
-    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    content = content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
     const parsedData = JSON.parse(content);
 
     if (locationData) {
@@ -450,16 +455,15 @@ ${locationContext}
         formatted_address: locationData.formatted_address,
         coordinates: locationData.coordinates,
         country: locationData.location_details.country,
-        region: locationData.location_details.state || locationData.location_details.county
+        region: locationData.location_details.state || locationData.location_details.county,
       };
     }
 
     await saveCache(cacheKey, 'analysis', parsedData);
     return parsedData;
-
   } catch (error) {
-    console.error("Error analyzing property:", error);
-    console.warn("Returning comprehensive mock data...");
+    console.error('Error analyzing property:', error);
+    console.warn('Returning comprehensive mock data...');
     return getFallbackData(location, locationData);
   }
 };
@@ -468,71 +472,85 @@ ${locationContext}
  * Generate comprehensive fallback data when API fails
  */
 function getFallbackData(location, locationData) {
-  const coords = locationData?.coordinates || { lat: 40.7128, lng: -74.0060 };
+  const coords = locationData?.coordinates || { lat: 40.7128, lng: -74.006 };
 
   return {
     location_info: {
       formatted_address: locationData?.formatted_address || location,
       coordinates: coords,
-      region: locationData?.location_details?.state || "Unknown Region",
-      country: locationData?.location_details?.country || "Unknown",
-      jurisdiction: "Data unavailable - using estimates"
+      region: locationData?.location_details?.state || 'Unknown Region',
+      country: locationData?.location_details?.country || 'Unknown',
+      jurisdiction: 'Data unavailable - using estimates',
     },
     risk_analysis: {
       overall_score: 55,
-      buying_risk: { score: 52, status: "Medium", factors: ["Limited data available", "Market volatility"] },
-      renting_risk: { score: 48, status: "Medium", factors: ["Average market conditions"] },
+      buying_risk: {
+        score: 52,
+        status: 'Medium',
+        factors: ['Limited data available', 'Market volatility'],
+      },
+      renting_risk: { score: 48, status: 'Medium', factors: ['Average market conditions'] },
       flood_risk: {
         score: 30,
-        level: "Low",
+        level: 'Low',
         zones: [],
-        history: ["No recent major flooding events"],
-        nearby_water: ["Small creek 2km away"],
-        erosion_risk: "Low",
-        description: "Estimated low flood risk with stable soil conditions."
+        history: ['No recent major flooding events'],
+        nearby_water: ['Small creek 2km away'],
+        erosion_risk: 'Low',
+        description: 'Estimated low flood risk with stable soil conditions.',
       },
       soil_analysis: {
-        type: "Loamy",
-        stability: "High",
-        liquefaction_risk: "None",
-        foundation_concerns: "Standard foundation recommended"
+        type: 'Loamy',
+        stability: 'High',
+        liquefaction_risk: 'None',
+        foundation_concerns: 'Standard foundation recommended',
       },
       noise_data: {
         score: 35,
-        level: "Quiet",
+        level: 'Quiet',
         db_avg: 45,
-        sources: ["Local traffic"]
+        sources: ['Local traffic'],
       },
       light_pollution: {
         score: 40,
         bortle_scale: 4,
-        brightness: "Moderate",
-        impact: "Suburban sky visibility"
+        brightness: 'Moderate',
+        impact: 'Suburban sky visibility',
       },
-      crime_rate: { score: 45, rate_per_1000: 25, trend: "Stable", types: ["Property crime", "Theft"] },
-      air_quality: { aqi: 75, score: 70, rating: "Moderate", pollutants: ["PM2.5"] },
+      crime_rate: {
+        score: 45,
+        rate_per_1000: 25,
+        trend: 'Stable',
+        types: ['Property crime', 'Theft'],
+      },
+      air_quality: { aqi: 75, score: 70, rating: 'Moderate', pollutants: ['PM2.5'] },
       amenities: {
         score: 65,
         walkability: 60,
         nearby: [
-          { type: "Schools", count: 3, closest_distance: "1.2 km" },
-          { type: "Hospitals", count: 2, closest_distance: "2.5 km" }
-        ]
+          { type: 'Schools', count: 3, closest_distance: '1.2 km' },
+          { type: 'Hospitals', count: 2, closest_distance: '2.5 km' },
+        ],
       },
-      transportation: { score: 60, transit_options: ["Bus"], commute_time: "30-45 min", walkability_index: 55 },
+      transportation: {
+        score: 60,
+        transit_options: ['Bus'],
+        commute_time: '30-45 min',
+        walkability_index: 55,
+      },
       neighbourhood: {
         score: 65,
-        rating: "Average",
-        character: "Mixed residential area",
-        demographics: { median_age: 35, population_density: "Medium" }
+        rating: 'Average',
+        character: 'Mixed residential area',
+        demographics: { median_age: 35, population_density: 'Medium' },
       },
-      environmental_hazards: { score: 20, hazards: [], severity: "Low" },
+      environmental_hazards: { score: 20, hazards: [], severity: 'Low' },
       growth_potential: {
         score: 60,
-        forecast: "Moderate Growth",
-        drivers: ["Economic development"],
-        outlook_5yr: "Steady appreciation expected"
-      }
+        forecast: 'Moderate Growth',
+        drivers: ['Economic development'],
+        outlook_5yr: 'Steady appreciation expected',
+      },
     },
     historical_trends: {
       property_values: [
@@ -541,7 +559,7 @@ function getFallbackData(location, locationData) {
         { year: 2021, median_price: 295000, change_pct: 11.3 },
         { year: 2022, median_price: 320000, change_pct: 8.5 },
         { year: 2023, median_price: 335000, change_pct: 4.7 },
-        { year: 2024, median_price: 350000, change_pct: 4.5 }
+        { year: 2024, median_price: 350000, change_pct: 4.5 },
       ],
       crime_trends: [
         { year: 2019, incidents_per_1000: 28, change_pct: 0 },
@@ -549,7 +567,7 @@ function getFallbackData(location, locationData) {
         { year: 2021, incidents_per_1000: 27, change_pct: 3.8 },
         { year: 2022, incidents_per_1000: 25, change_pct: -7.4 },
         { year: 2023, incidents_per_1000: 24, change_pct: -4 },
-        { year: 2024, incidents_per_1000: 25, change_pct: 4.2 }
+        { year: 2024, incidents_per_1000: 25, change_pct: 4.2 },
       ],
       population: [
         { year: 2019, count: 50000, change_pct: 0 },
@@ -557,45 +575,45 @@ function getFallbackData(location, locationData) {
         { year: 2021, count: 52500, change_pct: 2.9 },
         { year: 2022, count: 54000, change_pct: 2.9 },
         { year: 2023, count: 55500, change_pct: 2.8 },
-        { year: 2024, count: 57000, change_pct: 2.7 }
+        { year: 2024, count: 57000, change_pct: 2.7 },
       ],
       development_timeline: [
-        { year: 2020, events: ["New transit line approved"] },
-        { year: 2022, events: ["Shopping center opened"] },
-        { year: 2023, events: ["School expansion completed"] },
-        { year: 2024, events: ["Park renovation"] }
-      ]
+        { year: 2020, events: ['New transit line approved'] },
+        { year: 2022, events: ['Shopping center opened'] },
+        { year: 2023, events: ['School expansion completed'] },
+        { year: 2024, events: ['Park renovation'] },
+      ],
     },
     market_intelligence: {
-      current_trend: "Up",
-      prediction_6mo: "Moderate appreciation expected",
-      prediction_1yr: "Continued steady growth likely",
-      ai_summary: "Estimated data due to API limits. Research recommended.",
+      current_trend: 'Up',
+      prediction_6mo: 'Moderate appreciation expected',
+      prediction_1yr: 'Continued steady growth likely',
+      ai_summary: 'Estimated data due to API limits. Research recommended.',
       recent_listings: [],
       news: [
         {
-          headline: "Data unavailable",
-          summary: "Unable to fetch recent news.",
-          date: "N/A",
-          source: "System",
-          relevance: "Low"
-        }
-      ]
+          headline: 'Data unavailable',
+          summary: 'Unable to fetch recent news.',
+          date: 'N/A',
+          source: 'System',
+          relevance: 'Low',
+        },
+      ],
     },
     legal_resources: {
-      jurisdiction: "Data unavailable",
-      property_law_system: "Unknown",
+      jurisdiction: 'Data unavailable',
+      property_law_system: 'Unknown',
       key_statutes: [],
-      dispute_process: "Consult local legal resources.",
-      typical_timeline: "Varies",
-      resources: []
+      dispute_process: 'Consult local legal resources.',
+      typical_timeline: 'Varies',
+      resources: [],
     },
     additional_info: {
-      solar_potential: "Good",
-      weather_summary: "Data unavailable",
+      solar_potential: 'Good',
+      weather_summary: 'Data unavailable',
       climate_risks: [],
-      insurance_considerations: "Standard insurance recommended"
-    }
+      insurance_considerations: 'Standard insurance recommended',
+    },
   };
 }
 
@@ -607,11 +625,11 @@ function getFallbackData(location, locationData) {
  */
 export const sendChatMessage = async (messages, context = {}) => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("API key not configured");
+  if (!apiKey) throw new Error('API key not configured');
 
   const contextString = `
-    Current Location Context: ${context.location || "Not specified"}.
-    User Geolocation: ${context.userLocation ? `${context.userLocation.lat}, ${context.userLocation.lng}` : "Unknown"}.
+    Current Location Context: ${context.location || 'Not specified'}.
+    User Geolocation: ${context.userLocation ? `${context.userLocation.lat}, ${context.userLocation.lng}` : 'Unknown'}.
     Risk Data Available: ${!!context.riskSummary}.
   `;
 
@@ -657,7 +675,7 @@ ${contextString.trim()}`;
   const geminiContents = [];
   let isFirstUserMsg = true;
 
-  messages.forEach(msg => {
+  messages.forEach((msg) => {
     let role = msg.role === 'assistant' ? 'model' : 'user';
     let text = msg.content;
 
@@ -670,12 +688,12 @@ ${contextString.trim()}`;
 
     geminiContents.push({
       role: role,
-      parts: [{ text: text }]
+      parts: [{ text: text }],
     });
   });
 
   if (geminiContents.length === 0) {
-    geminiContents.push({ role: 'user', parts: [{ text: systemPrompt + "\n\nHello" }] });
+    geminiContents.push({ role: 'user', parts: [{ text: systemPrompt + '\n\nHello' }] });
   }
 
   const lastMsg = messages[messages.length - 1].content;
@@ -683,24 +701,27 @@ ${contextString.trim()}`;
 
   const cached = await checkCache(cacheKey, 'chat');
   if (cached) {
-    return cached + " ⚡";
+    return cached + ' ⚡';
   }
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: geminiContents,
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 5000,
-          responseMimeType: "application/json"
-        }
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: geminiContents,
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 5000,
+            responseMimeType: 'application/json',
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
@@ -709,21 +730,20 @@ ${contextString.trim()}`;
 
     const data = await response.json();
     let content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!content) throw new Error("No content generated by Gemini");
+    if (!content) throw new Error('No content generated by Gemini');
 
     try {
       const parsed = JSON.parse(content);
 
-      let displayString = parsed.answer || "";
+      let displayString = parsed.answer || '';
 
       if (parsed.risk_score !== undefined) {
         displayString += `\n\n**Overall Risk Score:** ${parsed.risk_score}/100`;
       }
 
       content = displayString;
-
     } catch (e) {
-      console.warn("Failed to parse Chatbot JSON, attempting regex extraction", e);
+      console.warn('Failed to parse Chatbot JSON, attempting regex extraction', e);
       // Fallback: Try to extract the "answer" field if JSON is broken/truncated
       const answerMatch = content.match(/"answer":\s*"((?:[^"\\]|\\.)*)/);
       if (answerMatch) {
@@ -740,9 +760,8 @@ ${contextString.trim()}`;
 
     await saveCache(cacheKey, 'chat', content);
     return content;
-
   } catch (error) {
-    console.error("Chatbot API Error:", error);
-    return "Connection error. Please try again.";
+    console.error('Chatbot API Error:', error);
+    return 'Connection error. Please try again.';
   }
 };

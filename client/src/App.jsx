@@ -4,8 +4,11 @@ import Home from './pages/Home';
 import Analyze from './pages/Analyze';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import NotFound from './pages/NotFound';
+import Calendar from './pages/Calendar';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import InvestmentCalculator from './components/Analytics/InvestmentCalculator';
+import ErrorBoundary from './components/UI/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 import { ComparisonProvider } from './context/ComparisonContext';
 import { AuthProvider } from './context/AuthContext';
@@ -35,7 +38,7 @@ function AppContent() {
     mediaQuery.addEventListener('change', handleThemeChange);
 
     // 2. Geolocation Request
-    if ("geolocation" in navigator) {
+    if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -45,9 +48,9 @@ function AppContent() {
           updateAnalysis({ userLocation: { lat: latitude, lng: longitude } });
         },
         (error) => {
-          console.warn("Location permission denied. Using default location (NYC).");
+          console.warn('Location permission denied. Using default location (NYC).');
           // Fallback to NYC
-          updateAnalysis({ userLocation: { lat: 40.7128, lng: -74.0060 } });
+          updateAnalysis({ userLocation: { lat: 40.7128, lng: -74.006 } });
         }
       );
     }
@@ -57,36 +60,62 @@ function AppContent() {
 
   return (
     <>
-      <Routes>
-        {/* Public Authentication Pages */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+      <ErrorBoundary>
+        <Routes>
+          {/* Public Authentication Pages */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-        {/* Protected/App Pages */}
-        <Route path="/" element={
-          <MainLayoutWrapper>
-            <Home />
-          </MainLayoutWrapper>
-        } />
-        <Route path="/analyze" element={
-          <MainLayoutWrapper>
-            <Analyze />
-          </MainLayoutWrapper>
-        } />
-        <Route path="/market" element={
-          <MainLayoutWrapper>
-            <div className="h-full overflow-y-auto custom-scrollbar p-2">
-              <InvestmentCalculator />
-            </div>
-          </MainLayoutWrapper>
-        } />
-        <Route path="/dashboard" element={
-          <MainLayoutWrapper>
-            <Dashboard />
-          </MainLayoutWrapper>
-        } />
-        {/* Settings removed as requested */}
-      </Routes>
+          {/* Protected/App Pages */}
+          <Route
+            path="/"
+            element={
+              <MainLayoutWrapper>
+                <Home />
+              </MainLayoutWrapper>
+            }
+          />
+          <Route
+            path="/analyze"
+            element={
+              <MainLayoutWrapper>
+                <Analyze />
+              </MainLayoutWrapper>
+            }
+          />
+          <Route
+            path="/market"
+            element={
+              <MainLayoutWrapper>
+                <div className="h-full overflow-y-auto custom-scrollbar p-2">
+                  <InvestmentCalculator />
+                </div>
+              </MainLayoutWrapper>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <MainLayoutWrapper>
+                <Dashboard />
+              </MainLayoutWrapper>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <MainLayoutWrapper>
+                 <div className="h-full overflow-y-auto custom-scrollbar p-6">
+                    <Calendar />
+                 </div>
+              </MainLayoutWrapper>
+            }
+          />
+
+          {/* 404 Catch-all Route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ErrorBoundary>
     </>
   );
 }

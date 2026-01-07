@@ -23,6 +23,9 @@ export async function createCalendarEvent(
       scopes: ['https://www.googleapis.com/auth/calendar'],
     });
 
+
+
+
     const calendar = google.calendar({ version: 'v3', auth });
 
     // No need for explicit authorize() call with GoogleAuth

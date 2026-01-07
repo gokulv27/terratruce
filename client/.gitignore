@@ -32,3 +32,6 @@ dist-ssr
 
 .env
 .env.local
+
+mcp-backend/
+mcp-backend

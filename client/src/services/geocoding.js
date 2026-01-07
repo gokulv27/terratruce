@@ -35,7 +35,7 @@ export const geocodeAddress = async (address) => {
       formatted_address: result.formatted,
       coordinates: {
         lat: result.geometry.lat,
-        lng: result.geometry.lng
+        lng: result.geometry.lng,
       },
       location_details: {
         country: components.country || 'Unknown',
@@ -45,16 +45,16 @@ export const geocodeAddress = async (address) => {
         city: components.city || components.town || components.village || '',
         postcode: components.postcode || '',
         road: components.road || '',
-        suburb: components.suburb || components.neighbourhood || ''
+        suburb: components.suburb || components.neighbourhood || '',
       },
       metadata: {
         timezone: annotations?.timezone?.name || 'UTC',
         currency: annotations?.currency?.name || '',
         flag: annotations?.flag || '',
         continent: components.continent || '',
-        confidence: result.confidence || 0
+        confidence: result.confidence || 0,
       },
-      bounds: result.bounds || null
+      bounds: result.bounds || null,
     };
   } catch (error) {
     console.error('Geocoding error:', error);
@@ -81,11 +81,11 @@ export const getSuggestions = async (query) => {
     const data = await response.json();
     if (!data.results) return [];
 
-    return data.results.map(r => ({
+    return data.results.map((r) => ({
       label: r.formatted,
       components: r.components,
       geometry: r.geometry,
-      bounds: r.bounds
+      bounds: r.bounds,
     }));
   } catch (error) {
     console.error('Suggestion error:', error);
@@ -118,7 +118,7 @@ export const reverseGeocode = async (lat, lng) => {
     const result = data.results[0];
     return {
       formatted_address: result.formatted,
-      components: result.components
+      components: result.components,
     };
   } catch (error) {
     console.error('Reverse geocoding error:', error);
