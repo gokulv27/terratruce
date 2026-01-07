@@ -11,6 +11,13 @@ const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
  */
 const PROXY_URL = '/api/perplexity';
 
+// Initialization Check
+if (!supabase) {
+  console.warn('⚠️ Supabase client failed to initialize. Cache features will be disabled.');
+} else {
+  console.log('✅ Supabase client connected');
+}
+
 /**
  * Extracts a property address from raw OCR text using Perplexity.
  */
