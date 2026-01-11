@@ -16,6 +16,8 @@ import {
   Search,
   RefreshCw,
   Calendar as CalendarIcon,
+  Menu,
+  X,
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useTheme } from '../../context/ThemeContext';
@@ -29,11 +31,10 @@ import Chatbot from '../Chat/Chatbot';
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
   <Link
     to={to}
-    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
-      active
-        ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-lg shadow-brand-primary/20'
-        : 'text-text-secondary hover:bg-black/5 dark:hover:bg-white/10 hover:text-text-primary'
-    } `}
+    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${active
+      ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-lg shadow-brand-primary/20'
+      : 'text-text-secondary hover:bg-black/5 dark:hover:bg-white/10 hover:text-text-primary'
+      } `}
   >
     <Icon
       className={`h-5 w-5 relative z-10 ${active ? 'text-white' : 'text-text-secondary group-hover:text-text-primary'} `}
@@ -68,15 +69,36 @@ const DashboardLayout = ({ children }) => {
     }
   };
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex h-screen bg-background text-text-primary overflow-hidden font-sans transition-colors duration-300">
       {/* Tutorial Overlay */}
       <Tutorial />
 
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar - Power BI Style */}
-      <div className="w-64 bg-surface border-r border-border flex flex-col z-20 shadow-2xl transition-colors duration-300">
+      <div
+        className={`
+          fixed inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col z-[100] shadow-2xl transition-transform duration-300
+          md:relative md:translate-x-0
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
         {/* Brand */}
-        <div className="p-6 pb-8 border-b border-border">
+        <div className="p-6 pb-8 border-b border-border flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
               <Shield className="h-6 w-6 text-white" />
@@ -90,6 +112,13 @@ const DashboardLayout = ({ children }) => {
               </p>
             </div>
           </div>
+          {/* Close Button Mobile */}
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden p-1 text-text-secondary hover:text-text-primary"
+          >
+            <X className="h-6 w-6" />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -128,7 +157,6 @@ const DashboardLayout = ({ children }) => {
             active={location.pathname === '/market'}
           />
 
-          {/* Recent History Section - Requested Feature */}
           {/* Recent History Section - Gemini Style */}
           <div className="mt-8">
             <div className="px-4 mb-4 text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center justify-between group/total">
@@ -165,9 +193,10 @@ const DashboardLayout = ({ children }) => {
                       className="group relative"
                     >
                       <button
-                        onClick={() =>
-                          navigate('/analyze', { state: { query: item.location_name } })
-                        }
+                        onClick={() => {
+                          navigate('/analyze', { state: { query: item.location_name } });
+                          setIsMobileMenuOpen(false); // Close menu on selection
+                        }}
                         className="w-full flex flex-col gap-0.5 px-3 py-2.5 rounded-xl hover:bg-surface-elevated transition-all text-left group"
                       >
                         <div className="flex items-center justify-between gap-2 overflow-hidden">
@@ -179,13 +208,12 @@ const DashboardLayout = ({ children }) => {
                           </span>
                           {item.risk_score !== null && (
                             <span
-                              className={`text-[10px] font-black shrink-0 ${
-                                item.risk_score > 70
-                                  ? 'text-red-500'
-                                  : item.risk_score > 40
-                                    ? 'text-yellow-500'
-                                    : 'text-green-500'
-                              }`}
+                              className={`text-[10px] font-black shrink-0 ${item.risk_score > 70
+                                ? 'text-red-500'
+                                : item.risk_score > 40
+                                  ? 'text-yellow-500'
+                                  : 'text-green-500'
+                                }`}
                             >
                               {item.risk_score}%
                             </span>
@@ -270,26 +298,34 @@ const DashboardLayout = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col relative overflow-hidden bg-background">
         {/* Top Header - Glassmorphism */}
-        <header className="h-16 bg-glass border-b border-border flex items-center justify-between px-6 z-10 sticky top-0">
+        <header className="h-16 bg-glass border-b border-border flex items-center justify-between px-4 md:px-6 z-10 sticky top-0">
           <div className="flex items-center gap-4">
-            <h2 className="text-lg font-bold text-text-primary">
+            {/* Mobile Hamburger */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -ml-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-text-primary md:hidden"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+
+            <h2 className="text-lg font-bold text-text-primary truncate max-w-[200px] md:max-w-none">
               {location.pathname === '/'
                 ? 'Executive Overview'
                 : location.pathname === '/analyze'
-                  ? 'Risk Intelligence Dashboard'
+                  ? 'Risk Intelligence'
                   : location.pathname === '/market'
-                    ? 'Investment ROI Calculator'
+                    ? 'ROI Calculator'
                     : location.pathname === '/calendar'
                       ? 'Visit Schedule'
                       : 'Dashboard'}
             </h2>
-            <div className="h-4 w-px bg-border"></div>
-            <span className="text-xs text-brand-primary font-medium px-2 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20">
+            <div className="hidden md:block h-4 w-px bg-border"></div>
+            <span className="hidden md:inline text-xs text-brand-primary font-medium px-2 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20">
               Live Data
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-xs text-text-secondary font-mono">
+            <div className="hidden md:block text-xs text-text-secondary font-mono">
               {new Date().toLocaleDateString(undefined, {
                 weekday: 'long',
                 year: 'numeric',
