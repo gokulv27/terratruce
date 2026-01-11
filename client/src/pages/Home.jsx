@@ -160,7 +160,7 @@ const Home = () => {
       if (analysisState?.userLocation) {
         // Determine region based on state
         // This is a mock; in real app we'd map states to keys
-        if (analysisState.userLocation.includes('Tamil Nadu')) {
+        if (typeof analysisState.userLocation === 'string' && analysisState.userLocation.includes('Tamil Nadu')) {
           setHotSearches(SYNTHETIC_HOT_SEARCHES['Tamil Nadu']);
           setUserState('Tamil Nadu');
         } else {
