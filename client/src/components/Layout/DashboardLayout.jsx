@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Activity, Globe, Shield, Sun, Moon, LogOut, User, Calculator, Clock, ArrowRightLeft, TrendingUp, Search, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Activity, Globe, Shield, Sun, Moon, LogOut, User, Calculator, Clock, ArrowRightLeft, TrendingUp, Search, RefreshCw, Menu, X } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,9 +10,10 @@ import Tutorial from '../OnboardingFlow/Tutorial';
 import { useAnalysis } from '../../context/AnalysisContext';
 import Chatbot from '../Chat/Chatbot';
 
-const SidebarItem = ({ icon: Icon, label, to, active }) => (
+const SidebarItem = ({ icon: Icon, label, to, active, onClick }) => (
     <Link
         to={to}
+        onClick={onClick}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${active
             ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-lg shadow-brand-primary/20'
             : 'text-text-secondary hover:bg-black/5 dark:hover:bg-white/10 hover:text-text-primary'
@@ -30,6 +30,14 @@ const DashboardLayout = ({ children }) => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const { history, clearHistory, fetchHistory } = useAnalysis();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    // Close sidebar on route change (mobile)
+    useEffect(() => {
+        setIsSidebarOpen(false);
+    }, [location.pathname]);
+
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const handleClearHistory = async () => {
         if (!user) return;
@@ -55,10 +63,26 @@ const DashboardLayout = ({ children }) => {
             {/* Tutorial Overlay */}
             <Tutorial />
 
+            {/* Mobile Sidebar Overlay */}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Sidebar - Power BI Style */}
-            <div className="w-64 bg-surface border-r border-border flex flex-col z-20 shadow-2xl transition-colors duration-300">
+            <aside className={`
+                fixed md:relative inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            `}>
                 {/* Brand */}
-                <div className="p-6 pb-8 border-b border-border">
+                <div className="p-6 pb-8 border-b border-border flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/20">
                             <Shield className="h-6 w-6 text-white" />
@@ -70,6 +94,10 @@ const DashboardLayout = ({ children }) => {
                             <p className="text-[10px] text-text-secondary font-bold tracking-widest uppercase">Property Intelligence</p>
                         </div>
                     </div>
+                    {/* Mobile Close Button */}
+                    <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-text-secondary hover:text-text-primary">
+                        <X className="h-6 w-6" />
+                    </button>
                 </div>
 
                 {/* Navigation */}
@@ -214,25 +242,34 @@ const DashboardLayout = ({ children }) => {
                         <span>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
                     </button>
                 </div>
-            </div>
+            </aside>
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col relative overflow-hidden bg-background">
                 {/* Top Header - Glassmorphism */}
-                <header className="h-16 bg-glass border-b border-border flex items-center justify-between px-6 z-10 sticky top-0">
+                <header className="h-16 bg-glass border-b border-border flex items-center justify-between px-4 md:px-6 z-10 sticky top-0">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-lg font-bold text-text-primary">
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={toggleSidebar}
+                            className="md:hidden p-2 -ml-2 text-text-primary hover:bg-surface-elevated rounded-lg transition-colors"
+                            aria-label="Open Menu"
+                        >
+                            <Menu className="h-6 w-6" />
+                        </button>
+
+                        <h2 className="text-lg font-bold text-text-primary truncate">
                             {location.pathname === '/' ? 'Executive Overview' :
-                                location.pathname === '/analyze' ? 'Risk Intelligence Dashboard' :
-                                    location.pathname === '/market' ? 'Investment ROI Calculator' : 'Dashboard'}
+                                location.pathname === '/analyze' ? 'Risk Intelligence' :
+                                    location.pathname === '/market' ? 'ROI Calculator' : 'Dashboard'}
                         </h2>
-                        <div className="h-4 w-px bg-border"></div>
-                        <span className="text-xs text-brand-primary font-medium px-2 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20">
+                        <div className="hidden md:block h-4 w-px bg-border"></div>
+                        <span className="hidden md:inline text-xs text-brand-primary font-medium px-2 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20">
                             Live Data
                         </span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="text-xs text-text-secondary font-mono">
+                        <div className="text-xs text-text-secondary font-mono hidden sm:block">
                             {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </div>
                     </div>

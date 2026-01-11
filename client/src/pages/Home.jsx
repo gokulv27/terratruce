@@ -174,7 +174,7 @@ const Home = () => {
         <div ref={containerRef} className="h-full overflow-y-auto custom-scrollbar bg-background text-text-primary overflow-x-hidden font-sans">
 
             {/* Hero Section */}
-            <div ref={heroRef} className="relative pt-12 pb-12 px-6 lg:px-12 overflow-hidden min-h-screen flex items-center">
+            <div ref={heroRef} className="relative pt-12 pb-12 px-4 md:px-6 lg:px-12 overflow-hidden min-h-screen flex items-center">
                 {/* Background Gradients - Aesthetic Blue */}
                 <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] -translate-y-1/4 translate-x-1/4 pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-brand-secondary/5 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
@@ -188,14 +188,14 @@ const Home = () => {
                             Smart Real Estate Intelligence
                         </div>
 
-                        <h1 className="hero-content text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] text-text-primary">
+                        <h1 className="hero-content text-4xl md:text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] text-text-primary">
                             Invest with <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent">
                                 Clarity & Style.
                             </span>
                         </h1>
 
-                        <p className="hero-content text-xl text-text-secondary max-w-lg leading-relaxed font-medium">
+                        <p className="hero-content text-lg md:text-xl text-text-secondary max-w-lg leading-relaxed font-medium">
                             The most aesthetic way to analyze property risk, estimate ROI, and discover high-yield opportunities in India.
                         </p>
 
@@ -210,7 +210,7 @@ const Home = () => {
                     </div>
 
                     {/* Right: 3 Aesthetic Cards - Reconfigured for Table Layout */}
-                    <div className="hero-cards relative grid grid-cols-1 lg:grid-cols-2 gap-5 w-full max-w-2xl mx-auto lg:mr-0 mt-12 lg:mt-0 z-20">
+                    <div className="hero-cards relative grid grid-cols-1 lg:grid-cols-2 gap-5 w-full max-w-2xl mx-auto lg:mr-0 mt-8 lg:mt-0 z-20">
                         {/* Hottest Searches Table */}
                         <HottestSearchesTable items={hotSearches} onSearch={handleSearchClick} region={userState} />
 

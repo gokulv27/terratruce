@@ -405,7 +405,7 @@ ${locationContext}
 
   try {
     const isProd = import.meta.env.PROD;
-    const url = isProd ? PROXY_URL : '/api/perplexity';
+    const url = isProd ? PROXY_URL : 'https://api.perplexity.ai/chat/completions';
 
     const headers = { 'Content-Type': 'application/json' };
 

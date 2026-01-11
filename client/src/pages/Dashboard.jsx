@@ -67,14 +67,14 @@ const Dashboard = () => {
     }).sort((a, b) => b.Revenue - a.Revenue); // All items by Volume
 
     return (
-        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 font-sans pb-24">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 font-sans pb-24">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                 <div>
-                    <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary tracking-tight">Financial Dashboard</h1>
-                    <p className="text-text-secondary font-medium mt-1">Track your net worth and portfolio performance.</p>
+                    <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary tracking-tight">Financial Dashboard</h1>
+                    <p className="text-text-secondary font-medium mt-1 text-sm md:text-base">Track your net worth and portfolio performance.</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-surface-elevated px-4 py-2 rounded-xl shadow-sm border border-border">
+                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 bg-surface-elevated px-4 py-2 rounded-xl shadow-sm border border-border flex-1 xl:flex-none justify-center">
                         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                         <span className="text-xs font-bold text-text-secondary uppercase">Live</span>
                     </div>
@@ -95,9 +95,9 @@ const Dashboard = () => {
 
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-brand-primary/20 hover:scale-105 transition-transform"
+                        className="flex-1 xl:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-brand-primary/20 hover:scale-105 transition-transform whitespace-nowrap"
                     >
-                        <Plus className="h-5 w-5" /> Add Investment
+                        <Plus className="h-5 w-5" /> <span className="hidden sm:inline">Add Investment</span><span className="sm:hidden">Add</span>
                     </button>
                 </div>
             </div>
