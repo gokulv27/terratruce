@@ -40,7 +40,7 @@ const MetricRow = ({
 
   return (
     <div
-      className={`grid grid-cols-[200px_1fr] border-b border-border transition-colors ${index % 2 === 0 ? 'bg-surface' : 'bg-surface-elevated/10'} hover:bg-surface-elevated/30`}
+      className={`grid grid-cols-[140px_1fr] md:grid-cols-[200px_1fr] border-b border-border transition-colors ${index % 2 === 0 ? 'bg-surface' : 'bg-surface-elevated/10'} hover:bg-surface-elevated/30`}
     >
       <div className="p-4 flex items-center gap-3 font-semibold text-text-secondary border-r border-border">
         {Icon && <Icon className="h-4 w-4 text-brand-primary/80" />}
@@ -51,11 +51,10 @@ const MetricRow = ({
           <div
             key={idx}
             className={`flex-1 min-w-[200px] p-4 border-r border-border last:border-r-0 flex items-center justify-center font-medium transition-colors
-                            ${
-                              bestIndex === idx
-                                ? 'bg-emerald-500/5 text-emerald-500 font-bold shadow-[inset_0_0_15px_rgba(16,185,129,0.05)]'
-                                : 'text-text-primary'
-                            }
+                            ${bestIndex === idx
+                ? 'bg-emerald-500/5 text-emerald-500 font-bold shadow-[inset_0_0_15px_rgba(16,185,129,0.05)]'
+                : 'text-text-primary'
+              }
                         `}
           >
             {formatValue ? formatValue(item.value) : item.value}
@@ -211,7 +210,7 @@ const ComparisonView = () => {
             ) : (
               <div className="min-w-fit">
                 {/* Header Row (Locations) */}
-                <div className="grid grid-cols-[200px_1fr] sticky top-0 z-10 bg-surface shadow-sm border-b border-border">
+                <div className="grid grid-cols-[140px_1fr] md:grid-cols-[200px_1fr] sticky top-0 z-10 bg-surface shadow-sm border-b border-border">
                   <div className="p-5 font-bold text-text-primary flex items-center border-r border-border bg-surface shadow-[4px_0_10px_rgba(0,0,0,0.02)] z-20">
                     Property / Metric
                   </div>
@@ -269,7 +268,7 @@ const ComparisonView = () => {
                 </div>
 
                 {/* Summary / Action Row */}
-                <div className="grid grid-cols-[200px_1fr] border-b border-border bg-surface-elevated/5">
+                <div className="grid grid-cols-[140px_1fr] md:grid-cols-[200px_1fr] border-b border-border bg-surface-elevated/5">
                   <div className="p-4 font-bold text-text-secondary border-r border-border flex items-center">
                     Action
                   </div>

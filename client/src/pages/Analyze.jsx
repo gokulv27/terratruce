@@ -209,7 +209,7 @@ const Analyze = () => {
   }
 
   return (
-    <div className="flex flex-col h-full gap-4 pb-4 relative">
+    <div className="flex flex-col md:h-full gap-4 pb-4 relative">
       {/* Top Toolbar */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="w-full md:w-2/3 lg:w-1/2 relative z-30">
@@ -228,11 +228,10 @@ const Analyze = () => {
               })
             }
             disabled={!riskData}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm ${
-              riskData
-                ? 'bg-brand-secondary text-white hover:bg-brand-secondary/90 shadow-brand-secondary/20'
-                : 'bg-surface border border-border text-text-secondary opacity-50 cursor-not-allowed'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm ${riskData
+              ? 'bg-brand-secondary text-white hover:bg-brand-secondary/90 shadow-brand-secondary/20'
+              : 'bg-surface border border-border text-text-secondary opacity-50 cursor-not-allowed'
+              }`}
           >
             <Calculator className="h-4 w-4" />
             <span className="hidden sm:inline">Calculate ROI</span>
@@ -276,11 +275,13 @@ const Analyze = () => {
       </div>
 
       {/* Main Content - Always Visible */}
-      <div className="flex-1 flex overflow-hidden relative min-h-[600px]">
+      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative min-h-[600px]">
         {/* Map View - Width adjusts based on data */}
         <div
-          className={`relative z-0 bg-gray-200 dark:bg-gray-800 ${riskData ? 'w-full md:w-[55%]' : 'w-full'}`}
-          style={{ height: '100%' }}
+          className={`relative z-0 bg-gray-200 dark:bg-gray-800 transition-all duration-300
+            ${riskData ? 'h-[400px] md:h-full w-full md:w-[55%]' : 'h-full w-full'}
+            shrink-0
+          `}
         >
           <MapView location={mapLocation} markers={getMarkers()} onLocationClick={handleMapClick} />
 
@@ -312,15 +313,15 @@ const Analyze = () => {
         {riskData && (
           <div
             className={`
-                        fixed inset-x-0 bottom-0 h-[65%] md:h-auto md:top-0 md:relative md:inset-auto md:w-[45%] 
-                        bg-surface md:shadow-none border-l border-border overflow-y-auto custom-scrollbar
-                        transition-transform duration-300 ease-in-out z-20 rounded-t-3xl md:rounded-none shadow-2xl
-                        ${showInsights ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
-                    `}
+              w-full md:flex-1
+              bg-surface border-l border-border md:overflow-y-auto custom-scrollbar
+              relative z-20 shadow-none
+              md:shadow-none
+              mt-0 md:mt-0
+            `}
           >
-            <div className="p-4 md:hidden flex justify-center sticky top-0 bg-surface/95 backdrop-blur z-30 border-b border-border">
-              <div className="w-12 h-1.5 bg-border rounded-full" />
-            </div>
+            {/* Standard spacing instead of pull bar */}
+            <div className="h-4 md:hidden" />
 
             <div className="p-4 space-y-4">
               <div className="flex items-center justify-between">
