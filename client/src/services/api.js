@@ -116,31 +116,25 @@ const saveCache = async (key, type, data) => {
   try {
     const expiresAt = new Date(Date.now() + CACHE_DURATION).toISOString();
     const createdAt = new Date().toISOString();
-    console.log(`💾 Refreshing Cache Entry [${key}]`);
+    console.log(`💾 Saving Cache Entry [${key}]...`);
 
-    // 1. Delete existing entry if any
-    await supabase.from('cache_entries').delete().eq('key', key);
-
-    // 2. Insert fresh entry with new timestamps
-    const { error } = await supabase.from('cache_entries').insert({
+    // Use UPSERT to handle both insert and update (on conflict do update)
+    const { error } = await supabase.from('cache_entries').upsert({
       key,
       type,
       data,
       expires_at: expiresAt,
       created_at: createdAt,
-    });
+    }, { onConflict: 'key' }); // Ensure we strictly update based on primary key 'key'
 
     if (error) {
-      if (error.code === '42501') {
-        console.error('❌ Supabase RLS Policy Violation: "cache_entries" table does not allow updates/deletes for anon role. Please check your RLS policies.');
-      } else {
-        console.error('❌ Cache Refresh Error (Supabase):', error);
-      }
+      console.error('❌ Cache Upsert Failed:', error);
+      console.error('Details:', JSON.stringify(error, null, 2));
     } else {
-      console.log('✅ Cache Refreshed Successfully');
+      console.log('✅ Cache Saved Successfully into DB', { key, expiresAt });
     }
   } catch (err) {
-    console.warn('Cache refresh failed', err);
+    console.warn('Cache save exception:', err);
   }
 };
 
@@ -177,7 +171,13 @@ export const analyzePropertyRisk = async (location) => {
 你是资深房地产分析师。全面分析此房产位置:
 ${locationContext}
 
-请提供详细的JSON响应（严禁markdown，仅纯JSON），严格遵循以下结构（所有内容必须用英文输出）:
+请提供详细的JSON响应（严禁markdown，仅纯JSON），严格遵循以下结构（所有内容必须用英文输出）。
+注意：
+1. 数组（Arrays）最多包含2个项目。
+2. 历史趋势（Historical Trends）仅提供 2022, 2023, 2024 年的数据。
+3. 描述（Descriptions）必须极简（<15 words）。
+4. 确保JSON完整且有效，不要截断。
+5. 必须根据实际位置数据给出真实估算，严禁使用固定模板。
 
 {
   "location_info": {
@@ -369,32 +369,21 @@ ${locationContext}
   
   "historical_trends": {
     "property_values": [
-      { "year": 2019, "median_price": number, "change_pct": number },
-      { "year": 2020, "median_price": number, "change_pct": number },
-      { "year": 2021, "median_price": number, "change_pct": number },
       { "year": 2022, "median_price": number, "change_pct": number },
       { "year": 2023, "median_price": number, "change_pct": number },
       { "year": 2024, "median_price": number, "change_pct": number }
     ],
     "crime_trends": [
-      { "year": 2019, "incidents_per_1000": number, "change_pct": number },
-      { "year": 2020, "incidents_per_1000": number, "change_pct": number },
-      { "year": 2021, "incidents_per_1000": number, "change_pct": number },
       { "year": 2022, "incidents_per_1000": number, "change_pct": number },
       { "year": 2023, "incidents_per_1000": number, "change_pct": number },
       { "year": 2024, "incidents_per_1000": number, "change_pct": number }
     ],
     "population": [
-      { "year": 2019, "count": number, "change_pct": number },
-      { "year": 2020, "count": number, "change_pct": number },
-      { "year": 2021, "count": number, "change_pct": number },
       { "year": 2022, "count": number, "change_pct": number },
       { "year": 2023, "count": number, "change_pct": number },
       { "year": 2024, "count": number, "change_pct": number }
     ],
     "development_timeline": [
-      { "year": 2020, "events": ["event"] },
-      { "year": 2021, "events": ["event"] },
       { "year": 2022, "events": ["event"] },
       { "year": 2023, "events": ["event"] },
       { "year": 2024, "events": ["event"] }
@@ -447,6 +436,8 @@ ${locationContext}
 
   try {
     const isProd = import.meta.env.PROD;
+    // Standardize to use the direct API in dev if key is present, or proxy if preferred. 
+    // We'll stick to a consistent approach.
     const url = isProd ? PROXY_URL : '/api/perplexity';
 
     const headers = { 'Content-Type': 'application/json' };
@@ -465,12 +456,12 @@ ${locationContext}
         messages: [
           {
             role: 'system',
-            content: '房地产分析专家。严禁markdown。仅输出有效的英文JSON。',
+            content: '房地产分析专家。严禁markdown。仅输出有效的英文JSON。保持所有描述极为简练（Telegraphic style, <15 words）。列表项最多2个。历史数据仅需最近3年 (2022-2024)。',
           },
           { role: 'user', content: prompt },
         ],
         temperature: 0.1,
-        max_tokens: 3000,
+        max_tokens: 4000,
       }),
     });
 
@@ -483,11 +474,22 @@ ${locationContext}
     const data = await response.json();
     let content = data.choices[0].message.content;
 
-    content = content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-    const parsedData = JSON.parse(content);
+    // Robust JSON extraction: look for strictly the first '{' and last '}'
+    const startIndex = content.indexOf('{');
+    const endIndex = content.lastIndexOf('}');
+
+    if (startIndex !== -1 && endIndex !== -1) {
+      content = content.substring(startIndex, endIndex + 1);
+    }
+
+    let parsedData;
+    try {
+      parsedData = JSON.parse(content);
+    } catch (parseErr) {
+      console.error('JSON Parse Error:', parseErr);
+      console.log('Raw content:', content);
+      throw parseErr; // This will be caught by the outer catch block
+    }
 
     if (locationData) {
       parsedData.location_info = {
@@ -502,159 +504,31 @@ ${locationContext}
     await saveCache(cacheKey, 'analysis', parsedData);
     return parsedData;
   } catch (error) {
-    console.error('Error analyzing property:', error);
-    console.warn('Returning comprehensive mock data...');
-    return getFallbackData(location, locationData);
+    console.error('❌ Critical Error analyzing property:', error);
+    console.error('Stack:', error.stack);
+
+    // Check if it's an API failure or code error
+    if (error.message && error.message.includes('API request failed')) {
+      console.warn('ℹ️ Perplexity API failed. This is likely why the result is not cached.');
+      console.warn('Check: 1. API Key validity 2. Proxy settings 3. Rate limits');
+    }
+
+    // STRICT MODE: NO MOCK DATA. Return null to indicate failure.
+    // The UI should handle this by showing an error state.
+    alert("Unable to fetch real-time analysis data. Please try again later.");
+    return null;
   }
 };
 
 /**
+ */
+/**
  * Generate comprehensive fallback data when API fails
+ * DEPRECATED: User requested STRICT real-time data only.
  */
 function getFallbackData(location, locationData) {
-  const coords = locationData?.coordinates || { lat: 40.7128, lng: -74.006 };
-
-  return {
-    location_info: {
-      formatted_address: locationData?.formatted_address || location,
-      coordinates: coords,
-      region: locationData?.location_details?.state || 'Unknown Region',
-      country: locationData?.location_details?.country || 'Unknown',
-      jurisdiction: 'Data unavailable - using estimates',
-    },
-    risk_analysis: {
-      overall_score: 55,
-      buying_risk: {
-        score: 52,
-        status: 'Medium',
-        factors: ['Limited data available', 'Market volatility'],
-      },
-      renting_risk: { score: 48, status: 'Medium', factors: ['Average market conditions'] },
-      flood_risk: {
-        score: 30,
-        level: 'Low',
-        zones: [],
-        history: ['No recent major flooding events'],
-        nearby_water: ['Small creek 2km away'],
-        erosion_risk: 'Low',
-        description: 'Estimated low flood risk with stable soil conditions.',
-      },
-      soil_analysis: {
-        type: 'Loamy',
-        stability: 'High',
-        liquefaction_risk: 'None',
-        foundation_concerns: 'Standard foundation recommended',
-      },
-      noise_data: {
-        score: 35,
-        level: 'Quiet',
-        db_avg: 45,
-        sources: ['Local traffic'],
-      },
-      light_pollution: {
-        score: 40,
-        bortle_scale: 4,
-        brightness: 'Moderate',
-        impact: 'Suburban sky visibility',
-      },
-      crime_rate: {
-        score: 45,
-        rate_per_1000: 25,
-        trend: 'Stable',
-        types: ['Property crime', 'Theft'],
-      },
-      air_quality: { aqi: 75, score: 70, rating: 'Moderate', pollutants: ['PM2.5'] },
-      amenities: {
-        score: 65,
-        walkability: 60,
-        nearby: [
-          { type: 'Schools', count: 3, closest_distance: '1.2 km' },
-          { type: 'Hospitals', count: 2, closest_distance: '2.5 km' },
-        ],
-      },
-      transportation: {
-        score: 60,
-        transit_options: ['Bus'],
-        commute_time: '30-45 min',
-        walkability_index: 55,
-      },
-      neighbourhood: {
-        score: 65,
-        rating: 'Average',
-        character: 'Mixed residential area',
-        demographics: { median_age: 35, population_density: 'Medium' },
-      },
-      environmental_hazards: { score: 20, hazards: [], severity: 'Low' },
-      growth_potential: {
-        score: 60,
-        forecast: 'Moderate Growth',
-        drivers: ['Economic development'],
-        outlook_5yr: 'Steady appreciation expected',
-      },
-    },
-    historical_trends: {
-      property_values: [
-        { year: 2019, median_price: 250000, change_pct: 0 },
-        { year: 2020, median_price: 265000, change_pct: 6 },
-        { year: 2021, median_price: 295000, change_pct: 11.3 },
-        { year: 2022, median_price: 320000, change_pct: 8.5 },
-        { year: 2023, median_price: 335000, change_pct: 4.7 },
-        { year: 2024, median_price: 350000, change_pct: 4.5 },
-      ],
-      crime_trends: [
-        { year: 2019, incidents_per_1000: 28, change_pct: 0 },
-        { year: 2020, incidents_per_1000: 26, change_pct: -7.1 },
-        { year: 2021, incidents_per_1000: 27, change_pct: 3.8 },
-        { year: 2022, incidents_per_1000: 25, change_pct: -7.4 },
-        { year: 2023, incidents_per_1000: 24, change_pct: -4 },
-        { year: 2024, incidents_per_1000: 25, change_pct: 4.2 },
-      ],
-      population: [
-        { year: 2019, count: 50000, change_pct: 0 },
-        { year: 2020, count: 51000, change_pct: 2 },
-        { year: 2021, count: 52500, change_pct: 2.9 },
-        { year: 2022, count: 54000, change_pct: 2.9 },
-        { year: 2023, count: 55500, change_pct: 2.8 },
-        { year: 2024, count: 57000, change_pct: 2.7 },
-      ],
-      development_timeline: [
-        { year: 2020, events: ['New transit line approved'] },
-        { year: 2022, events: ['Shopping center opened'] },
-        { year: 2023, events: ['School expansion completed'] },
-        { year: 2024, events: ['Park renovation'] },
-      ],
-    },
-    market_intelligence: {
-      current_trend: 'Up',
-      prediction_6mo: 'Moderate appreciation expected',
-      prediction_1yr: 'Continued steady growth likely',
-      ai_summary: 'Estimated data due to API limits. Research recommended.',
-      recent_listings: [],
-      news: [
-        {
-          headline: 'Data unavailable',
-          summary: 'Unable to fetch recent news.',
-          date: 'N/A',
-          source: 'System',
-          relevance: 'Low',
-        },
-      ],
-    },
-    legal_resources: {
-      jurisdiction: 'Data unavailable',
-      property_law_system: 'Unknown',
-      key_statutes: [],
-      dispute_process: 'Consult local legal resources.',
-      typical_timeline: 'Varies',
-      resources: [],
-    },
-    additional_info: {
-      solar_potential: 'Good',
-      weather_summary: 'Data unavailable',
-      climate_risks: [],
-      insurance_considerations: 'Standard insurance recommended',
-    },
-  };
+  // STRICT MODE: No fallback data.
+  return null;
 }
 
 /**

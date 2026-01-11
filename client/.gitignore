@@ -35,3 +35,4 @@ dist-ssr
 
 mcp-backend/
 mcp-backend
+restore_cache_entries.sql
