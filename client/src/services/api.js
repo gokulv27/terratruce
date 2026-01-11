@@ -446,56 +446,38 @@ ${locationContext}
   `.trim();
 
   try {
-    const isProd = import.meta.env.PROD;
-    const url = isProd ? PROXY_URL : '/api/perplexity';
+    console.log(`🌐 Calling Backend API [Endpoint: /api/analyze-property] for: ${location}`);
 
-    const headers = { 'Content-Type': 'application/json' };
-
-    if (PERPLEXITY_API_KEY) {
-      headers['Authorization'] = `Bearer ${PERPLEXITY_API_KEY}`;
-    }
-
-    console.log(`🌐 Calling Perplexity API [Proxy: ${url}]`);
-
-    const response = await fetch(url, {
+    // Call MCP Backend instead of Perplexity directly
+    const response = await fetch('/api/analyze-property', {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify({
-        model: 'sonar-pro',
-        messages: [
-          {
-            role: 'system',
-            content: '房地产分析专家。严禁markdown。仅输出有效的英文JSON。',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.1,
-        max_tokens: 3000,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('❌ Perplexity API FAILED:', response.status, response.statusText);
+      console.error('❌ Backend API FAILED:', response.status, response.statusText, errText);
       throw new Error(`API request failed: ${response.status} - ${errText}`);
     }
 
-    const data = await response.json();
-    let content = data.choices[0].message.content;
+    const result = await response.json();
 
-    content = content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-    const parsedData = JSON.parse(content);
+    // Validate response structure
+    if (!result.success || !result.data) {
+      throw new Error('Invalid response format from backend');
+    }
+
+    const parsedData = result.data;
 
     if (locationData) {
+      // Merge geocoded data if available
       parsedData.location_info = {
         ...parsedData.location_info,
-        formatted_address: locationData.formatted_address,
-        coordinates: locationData.coordinates,
-        country: locationData.location_details.country,
-        region: locationData.location_details.state || locationData.location_details.county,
+        formatted_address: locationData.formatted_address || parsedData.location_info.formatted_address,
+        coordinates: locationData.coordinates || parsedData.location_info.coordinates,
+        country: locationData.location_details?.country || parsedData.location_info.country,
+        region: locationData.location_details?.state || locationData.location_details?.county || parsedData.location_info.region,
       };
     }
 
@@ -503,7 +485,9 @@ ${locationContext}
     return parsedData;
   } catch (error) {
     console.error('Error analyzing property:', error);
-    console.warn('Returning comprehensive mock data...');
+    // Only use fallback if explicitly desired, but warning user is better often.
+    // For now we keep fallback but log loudly.
+    console.warn('Returning comprehensive mock data due to API failure...');
     return getFallbackData(location, locationData);
   }
 };

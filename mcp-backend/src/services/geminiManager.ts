@@ -26,6 +26,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { supabase } from '../config/database.js';
 
 interface KeyConfig {
   key: string;
@@ -56,7 +57,7 @@ class GeminiManager {
 
   constructor() {
     const isDev = process.env.NODE_ENV !== 'production';
-    
+
     // Parse primary key with optional limits
     const primaryKeyStr = process.env.GEMINI_PRIMARY_KEY;
     if (!primaryKeyStr) {
@@ -98,14 +99,14 @@ class GeminiManager {
   private parseKeyConfig(configStr: string, id: string): KeyConfig {
     const parts = configStr.split('|');
     const key = parts[0];
-    
+
     const config: KeyConfig = { key };
 
     // Parse optional limits
     parts.slice(1).forEach(part => {
       const [limitType, value] = part.split(':');
       const numValue = parseInt(value, 10);
-      
+
       if (limitType === 'rpm') config.rpm = numValue;
       else if (limitType === 'tpm') config.tpm = numValue;
       else if (limitType === 'rpd') config.rpd = numValue;
@@ -116,6 +117,8 @@ class GeminiManager {
 
   private initializeClient(id: string, key: string) {
     this.clients.set(id, new GoogleGenerativeAI(key));
+
+    // Default initial state
     this.usage.set(id, {
       requestCount: 0,
       tokenCount: 0,
@@ -123,6 +126,80 @@ class GeminiManager {
       lastReset: new Date(),
       lastDailyReset: new Date()
     });
+
+    // Load persistent state from Supabase
+    this.loadUsage(id);
+  }
+
+  /**
+   * Load usage stats from Supabase
+   */
+  private async loadUsage(keyId: string) {
+    if (!supabase) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('private.api_usage') // Note: accessing private schema often requires RLS/Function or direct table access if configured
+        .select('*') // If this fails due to no table, we just catch it
+        .eq('key_id', keyId)
+        .single();
+
+      // If table might be in public schema or mapped differently, try fallback if error
+      // But for now assuming the SQL setup was run
+
+      if (data) {
+        this.usage.set(keyId, {
+          requestCount: data.request_count || 0,
+          tokenCount: data.token_count || 0,
+          dailyRequests: data.daily_requests || 0,
+          lastReset: new Date(data.last_reset),
+          lastDailyReset: new Date(data.last_daily_reset)
+        });
+        if (this.config.isDev) {
+          console.log(`[GeminiManager] 📥 Loaded stats for ${keyId}: ${data.daily_requests} daily reqs`);
+        }
+      }
+    } catch (err) {
+      // Silent fail - just use memory defaults
+      // console.warn(`[GeminiManager] Could not load stats for ${keyId} (using memory)`);
+    }
+  }
+
+  /**
+   * Persist usage stats to Supabase
+   */
+  private async persistUsage(keyId: string) {
+    if (!supabase) return;
+
+    const stats = this.usage.get(keyId);
+    if (!stats) return;
+
+    try {
+      // Use the helper RPC function if available, or direct insert
+      const { error } = await supabase.rpc('update_api_usage', { // We use RPC if we made the function, traversing schema issues
+        p_key_id: keyId,
+        p_request_count: stats.requestCount,
+        p_daily_requests: stats.dailyRequests,
+        p_token_count: stats.tokenCount,
+        p_last_reset: stats.lastReset.toISOString(),
+        p_last_daily_reset: stats.lastDailyReset.toISOString()
+      });
+
+      if (error) {
+        // Fallback to direct upsert if RPC missing
+        await supabase.from('private.api_usage').upsert({
+          key_id: keyId,
+          request_count: stats.requestCount,
+          daily_requests: stats.dailyRequests,
+          token_count: stats.tokenCount,
+          last_reset: stats.lastReset.toISOString(),
+          last_daily_reset: stats.lastDailyReset.toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      // console.warn('[GeminiManager] Failed to persist usage:', err);
+    }
   }
 
   /**
@@ -133,18 +210,20 @@ class GeminiManager {
     if (!stats) return true;
 
     const now = new Date();
-    
+
     // Reset minute counter if needed
     if (now.getTime() - stats.lastReset.getTime() > 60000) {
       stats.requestCount = 0;
       stats.tokenCount = 0;
       stats.lastReset = now;
+      this.persistUsage(keyId); // Sync reset
     }
 
     // Reset daily counter if needed
     if (now.getTime() - stats.lastDailyReset.getTime() > 86400000) {
       stats.dailyRequests = 0;
       stats.lastDailyReset = now;
+      this.persistUsage(keyId); // Sync reset
     }
 
     // Check custom limits
@@ -176,178 +255,180 @@ class GeminiManager {
     stats.dailyRequests++;
     stats.tokenCount += estimatedTokens;
 
+    // Persist to DB
+    this.persistUsage(keyId);
+
     if (this.config.isDev) {
       console.log(`[GeminiManager] 📊 ${keyId}: ${stats.requestCount} req/min, ${stats.dailyRequests} req/day, ~${stats.tokenCount} tokens/min`);
     }
   }
 
   /**
-   * Get primary client for lightweight operations (chatbot, simple queries)
+   * Get all configured keys with their IDs and configs
    */
-  getPrimaryClient(): GoogleGenerativeAI {
-    return this.clients.get('primary')!;
+  private getAllKeys(): Array<{ id: string; config: KeyConfig }> {
+    const keys: Array<{ id: string; config: KeyConfig }> = [
+      { id: 'primary', config: this.config.primaryKey }
+    ];
+
+    this.config.backupKeys.forEach((config, idx) => {
+      keys.push({ id: `backup-${idx}`, config });
+    });
+
+    return keys;
   }
 
   /**
-   * Round-robin selection from backup pool for heavy operations
+   * Get the key with the lowest daily usage that hasn't exceeded limits
    */
-  private getNextBackupClient(): { client: GoogleGenerativeAI; id: string; config: KeyConfig } | null {
-    if (this.config.backupKeys.length === 0) {
-      return null;
-    }
+  private getLeastUsedKey(
+    candidates: Array<{ id: string; config: KeyConfig }>,
+    excludeIds: Set<string>
+  ): { client: GoogleGenerativeAI; id: string; config: KeyConfig } | null {
 
-    const idx = this.config.currentIndex;
-    const keyConfig = this.config.backupKeys[idx];
-    const id = `backup-${idx}`;
-    const client = this.clients.get(id)!;
-    
-    this.config.currentIndex = (this.config.currentIndex + 1) % this.config.backupKeys.length;
-    
-    return { client, id, config: keyConfig };
+    // Filter candidates: must not be excluded AND must have quota remaining
+    const eligible = candidates.filter(({ id, config }) => {
+      if (excludeIds.has(id)) return false;
+      return this.checkLimits(id, config);
+    });
+
+    if (eligible.length === 0) return null;
+
+    // Sort by daily usage (ascending)
+    // If ties, stable sort or random doesn't strictly matter, but sorting is deterministic
+    eligible.sort((a, b) => {
+      const usageA = this.usage.get(a.id)?.dailyRequests || 0;
+      const usageB = this.usage.get(b.id)?.dailyRequests || 0;
+      return usageA - usageB;
+    });
+
+    const best = eligible[0];
+    return {
+      client: this.clients.get(best.id)!,
+      id: best.id,
+      config: best.config
+    };
   }
 
   /**
-   * Generate text with automatic failover
-   * Uses primary key first, then rotates through backups on failure
+   * Generate text with load balancing (Least Used Strategy)
+   * Uses the key with lowest daily usage from the entire pool (Primary + Backups)
    */
-  async generateText(prompt: string, usePrimary: boolean = true): Promise<string> {
-    const keysToTry: Array<{ client: GoogleGenerativeAI; id: string; config: KeyConfig }> = [];
-    
-    if (usePrimary) {
-      // Check primary key limits
-      if (this.checkLimits('primary', this.config.primaryKey)) {
-        keysToTry.push({
-          client: this.getPrimaryClient(),
-          id: 'primary',
-          config: this.config.primaryKey
-        });
-      } else if (this.config.isDev) {
-        console.warn('[GeminiManager] ⚠️ Primary key limit exceeded, using backups');
-      }
-    }
-    
-    // Add all backup keys to rotation
-    for (let i = 0; i < this.config.backupKeys.length; i++) {
-      const backup = this.getNextBackupClient();
-      if (backup && this.checkLimits(backup.id, backup.config)) {
-        keysToTry.push(backup);
-      }
-    }
-
-    if (keysToTry.length === 0) {
-      throw new Error('All API keys have exceeded their limits. Please wait or add more keys.');
-    }
-
+  async generateText(prompt: string): Promise<string> {
+    const allKeys = this.getAllKeys();
+    const excludeIds = new Set<string>();
     let lastError: Error | null = null;
 
-    for (const { client, id, config } of keysToTry) {
+    // Try up to N times (where N is total keys)
+    while (excludeIds.size < allKeys.length) {
+      const selection = this.getLeastUsedKey(allKeys, excludeIds);
+
+      if (!selection) {
+        // No more eligible keys
+        break;
+      }
+
+      const { client, id } = selection;
+
       try {
         const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-        
         const result = await model.generateContent(prompt);
         const text = result.response.text();
-        
+
         // Track usage
         this.trackUsage(id, prompt.length + text.length);
-        
+
         if (this.config.isDev) {
-          console.log(`[GeminiManager] ✅ Success with key ${id}`);
+          console.log(`[GeminiManager] ✅ Success with key ${id} (Least Used)`);
         }
-        
+
         return text;
 
       } catch (error: any) {
         const isRateLimit = error?.status === 429 || error?.message?.includes('429');
         const isQuotaError = error?.status === 403 || error?.message?.includes('quota');
-        
+
         if (isRateLimit || isQuotaError) {
           if (this.config.isDev) {
-            console.warn(`[GeminiManager] ⚠️ Key ${id} failed (${error.status}), rotating...`);
+            console.warn(`[GeminiManager] ⚠️ Key ${id} failed (${error.status}), excluding...`);
           }
+          excludeIds.add(id);
           lastError = error;
-          continue; // Try next key
+          continue; // Try next best key
         }
-        
+
         // For other errors, throw immediately
         throw error;
       }
     }
 
-    // All keys exhausted
     throw new Error(`All Gemini API keys exhausted. Last error: ${lastError?.message}`);
   }
 
   /**
    * Analyze image with vision model
-   * Always uses backup keys to preserve primary for chatbot
+   * Prioritizes Backups (Least Used), then falls back to Primary
    */
   async analyzeImage(imageData: string, prompt: string, mimeType: string = 'image/jpeg'): Promise<string> {
-    const backupClients: Array<{ client: GoogleGenerativeAI; id: string; config: KeyConfig }> = [];
-    
-    // Use only backup keys for vision (token-heavy)
-    for (let i = 0; i < this.config.backupKeys.length; i++) {
-      const backup = this.getNextBackupClient();
-      if (backup && this.checkLimits(backup.id, backup.config)) {
-        backupClients.push(backup);
-      }
-    }
+    const allKeys = this.getAllKeys();
 
-    if (backupClients.length === 0) {
-      // Fallback to primary if no backups available
-      if (this.checkLimits('primary', this.config.primaryKey)) {
-        backupClients.push({
-          client: this.getPrimaryClient(),
-          id: 'primary',
-          config: this.config.primaryKey
-        });
-        if (this.config.isDev) {
-          console.warn('[GeminiManager] ⚠️ No backup keys available, using primary for vision');
-        }
-      } else {
-        throw new Error('All vision API keys have exceeded their limits');
-      }
-    }
+    // Separate backups and primary
+    const backups = allKeys.filter(k => k.id.startsWith('backup'));
+    const primary = allKeys.filter(k => k.id === 'primary');
 
+    // Strategy: Try all backups (sorted by least used) FIRST
+    // Then try Primary if backups fail
+
+    const strategies = [backups, primary];
+    const excludeIds = new Set<string>();
     let lastError: Error | null = null;
 
-    for (const { client, id } of backupClients) {
-      try {
-        const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-        
-        const result = await model.generateContent([
-          prompt,
-          {
-            inlineData: {
-              data: imageData,
-              mimeType
-            }
-          }
-        ]);
+    for (const pool of strategies) {
+      if (pool.length === 0) continue;
 
-        const text = result.response.text();
-        
-        // Track usage (vision uses more tokens)
-        this.trackUsage(id, 1000); // Estimate 1000 tokens for vision
-        
-        if (this.config.isDev) {
-          console.log(`[GeminiManager] ✅ Vision success with ${id}`);
-        }
-        
-        return text;
+      // Try keys in this pool until exhausted
+      while (true) {
+        // Check if all keys in this pool are excluded
+        const poolRemaining = pool.filter(k => !excludeIds.has(k.id));
+        if (poolRemaining.length === 0) break;
 
-      } catch (error: any) {
-        const isRateLimit = error?.status === 429;
-        const isQuotaError = error?.status === 403;
-        
-        if (isRateLimit || isQuotaError) {
+        const selection = this.getLeastUsedKey(pool, excludeIds);
+        if (!selection) break; // Should be covered by poolRemaining check, but safe guard
+
+        const { client, id } = selection;
+
+        try {
+          const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+          const result = await model.generateContent([
+            prompt,
+            { inlineData: { data: imageData, mimeType } }
+          ]);
+
+          const text = result.response.text();
+
+          this.trackUsage(id, 1000); // Estimate 1000 tokens for vision
+
           if (this.config.isDev) {
-            console.warn(`[GeminiManager] ⚠️ Vision key ${id} failed, rotating...`);
+            console.log(`[GeminiManager] ✅ Vision success with ${id}`);
           }
-          lastError = error;
-          continue;
+
+          return text;
+
+        } catch (error: any) {
+          const isRateLimit = error?.status === 429;
+          const isQuotaError = error?.status === 403;
+
+          if (isRateLimit || isQuotaError) {
+            if (this.config.isDev) {
+              console.warn(`[GeminiManager] ⚠️ Vision key ${id} failed, excluding...`);
+            }
+            excludeIds.add(id);
+            lastError = error;
+            continue;
+          }
+
+          throw error;
         }
-        
-        throw error;
       }
     }
 
