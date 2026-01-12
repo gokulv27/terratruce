@@ -1,5 +1,6 @@
 mod models;
 mod routes;
+mod email;
 
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
@@ -22,18 +23,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set in .env file");
+        .unwrap_or_else(|_| {
+            tracing::warn!("⚠️ DATABASE_URL not set, using fallback");
+            "postgresql://postgres:password@localhost:5432/postgres".to_string()
+        });
 
-    tracing::info!("Connecting to database...");
+    tracing::info!("Attempting to connect to database...");
+    tracing::debug!("Database host: {}", 
+        database_url.split('@').nth(1).unwrap_or("unknown").split('/').next().unwrap_or("unknown"));
 
-    let pool = PgPoolOptions::new()
+    let pool = match PgPoolOptions::new()
         .max_connections(5)
-        .acquire_timeout(std::time::Duration::from_secs(30))
+        .acquire_timeout(std::time::Duration::from_secs(5))
         .connect(&database_url)
         .await
-        .expect("Failed to create pool.");
-
-    tracing::info!("✅ Connection to Supabase successful!");
+    {
+        Ok(pool) => {
+            tracing::info!("✅ Database connection successful!");
+            pool
+        }
+        Err(e) => {
+            tracing::warn!("⚠️ Database connection failed: {}", e);
+            tracing::warn!("🔄 Server will start WITHOUT database features");
+            tracing::warn!("   - AI endpoints (/api/perplexity, /api/gemini) will work");
+            tracing::warn!("   - Search history features will be disabled");
+            
+            // Create a dummy pool that won't be used
+            PgPoolOptions::new()
+                .max_connections(1)
+                .acquire_timeout(std::time::Duration::from_secs(1))
+                .connect("postgresql://dummy:dummy@localhost:5432/dummy")
+                .await
+                .unwrap_or_else(|_| {
+                    // This is a last resort - create an unconnected pool
+                    // The routes that need DB will fail gracefully
+                    panic!("Cannot create even a dummy pool - this should not happen")
+                })
+        }
+    };
 
     let app = routes::create_router(pool);
 

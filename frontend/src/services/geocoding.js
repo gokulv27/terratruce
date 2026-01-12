@@ -1,10 +1,10 @@
 /**
  * OpenCage Geocoding API Service
  * Provides location enrichment and coordinate conversion
+ * Uses Backend Proxy /api/geocode for security
  */
 
-const OPENCAGE_API_KEY = import.meta.env.VITE_OPENCAGE_API_KEY;
-const OPENCAGE_BASE_URL = 'https://api.opencagedata.com/geocode/v1/json';
+const PROXY_URL = '/api/geocode';
 
 /**
  * Geocode an address to get coordinates and location details
@@ -14,7 +14,7 @@ const OPENCAGE_BASE_URL = 'https://api.opencagedata.com/geocode/v1/json';
 export const geocodeAddress = async (address) => {
   try {
     const response = await fetch(
-      `${OPENCAGE_BASE_URL}?q=${encodeURIComponent(address)}&key=${OPENCAGE_API_KEY}&limit=1&no_annotations=0`
+      `${PROXY_URL}?q=${encodeURIComponent(address)}&limit=1`
     );
 
     if (!response.ok) {
@@ -71,9 +71,8 @@ export const getSuggestions = async (query) => {
   if (!query || query.length < 3) return [];
 
   try {
-    // Add fuzzy=1 to allow for typos
     const response = await fetch(
-      `${OPENCAGE_BASE_URL}?q=${encodeURIComponent(query)}&key=${OPENCAGE_API_KEY}&limit=5&no_annotations=1`
+      `${PROXY_URL}?q=${encodeURIComponent(query)}&limit=5`
     );
 
     if (!response.ok) return [];
@@ -102,7 +101,7 @@ export const getSuggestions = async (query) => {
 export const reverseGeocode = async (lat, lng) => {
   try {
     const response = await fetch(
-      `${OPENCAGE_BASE_URL}?q=${lat}+${lng}&key=${OPENCAGE_API_KEY}&limit=1`
+      `${PROXY_URL}?q=${lat}+${lng}&limit=1`
     );
 
     if (!response.ok) {

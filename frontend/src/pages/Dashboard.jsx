@@ -41,7 +41,6 @@ const Dashboard = () => {
     removeFromPortfolio,
     getPortfolioSummary,
     addToPortfolio,
-    renameInPortfolio,
     updateVisitData,
     globalCurrency,
     setGlobalCurrency,
@@ -51,8 +50,6 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [visitModalOpen, setVisitModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editingName, setEditingName] = useState('');
 
   // Data Engineering: Generate 5-Year Wealth Projection
   // Start with current totals and project growth (Asset: 4%, Income: 2%)
@@ -165,11 +162,7 @@ const Dashboard = () => {
       </div>
 
       {/* Debug Banner for API Key */}
-      {!import.meta.env.VITE_PERPLEXITY_API_KEY && (
-        <div className="bg-red-500 text-white p-4 rounded-xl font-bold text-center mb-6 animate-pulse border-2 border-white shadow-xl">
-          ⚠️ API KEY NOT FOUND! Risk Analysis will fail. Please restart server (`npm run dev`).
-        </div>
-      )}
+
 
       {/* Hottest Searches Section */}
       <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
@@ -682,7 +675,7 @@ const SummaryCard = ({ icon: Icon, title, value, trend, gradient }) => (
   </div>
 );
 
-const AddInvestmentModal = ({ isOpen, onClose, onAdd }) => {
+const AddInvestmentModal = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
     propertyName: '',
     location: '',
@@ -816,7 +809,7 @@ const AddInvestmentModal = ({ isOpen, onClose, onAdd }) => {
   );
 };
 
-const VisitModal = ({ isOpen, onClose, asset, onSave }) => {
+const VisitModal = ({ onClose, asset, onSave }) => {
   const [date, setDate] = useState(
     asset.last_visited
       ? new Date(asset.last_visited).toISOString().split('T')[0]

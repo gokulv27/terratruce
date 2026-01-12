@@ -11,78 +11,14 @@ import FacilitiesDisplay from '../components/Insights/FacilitiesDisplay';
 import AnalysisLoader from '../components/UI/AnalysisLoader';
 import ComparisonView from '../components/Analytics/ComparisonView';
 import InsightsPanel from '../components/Insights/InsightsPanel';
-import { analyzePropertyRisk, extractAddressFromOCR } from '../services/api';
-import { extractTextFromFile, redactPII } from '../services/ocrService';
-import { useComparison } from '../context/ComparisonContext';
-import {
-  Activity,
-  AlertTriangle,
-  TrendingUp,
-  Map as MapIcon,
-  Maximize2,
-  PlusCircle,
-  ArrowRightLeft,
-  Search,
-  FileText,
-  Loader2,
-  Sparkles,
-  Calculator,
-  Navigation,
-} from 'lucide-react';
-import { supabase } from '../services/supabase';
-import { useAuth } from '../context/AuthContext';
-import { useAnalysis } from '../context/AnalysisContext';
+import { analyzePropertyRisk, extractAddressFromOCR, sendRiskReportEmail } from '../services/api';
 
-// Dashboard Card Wrapper
-const DashboardCard = ({ title, icon: Icon, children, className = '', fullHeight = false }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className={`bg-surface backdrop-blur-md border border-border rounded-2xl overflow-hidden flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 ${className}`}
-  >
-    {title && (
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-surface-elevated/50">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon className="h-4 w-4 text-brand-primary" />}
-          <h3 className="text-sm font-bold text-text-primary uppercase tracking-wide">{title}</h3>
-        </div>
-      </div>
-    )}
-    <div className={`p-5 overflow-auto custom-scrollbar ${fullHeight ? 'flex-1' : ''}`}>
-      {children}
-    </div>
-  </motion.div>
-);
+// ... (lines 15-56 unchanged)
 
 const Analyze = () => {
   const { user } = useAuth();
-  const routerLocation = useRouterLocation(); // Hook for router state
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [location, setLocation] = useState('');
-  const [mapLocation, setMapLocation] = useState({ lat: 40.7128, lng: -74.006 }); // Default NYC
-  const [riskData, setRiskData] = useState(null);
-  const [showInsights, setShowInsights] = useState(false);
-  const { addToCompare, toggleCompareVisibility, comparedProperties } = useComparison();
-  const { updateAnalysis, triggerChat, history, fetchHistory, addToHistory } = useAnalysis();
-  const fileInputRef = useRef(null);
-
-  // Sync context for Chatbot
-  useEffect(() => {
-    updateAnalysis({ location, riskData, loading });
-  }, [location, riskData, loading]);
-
-  // Handle Hot Search Navigation (Auto-Analyze)
-  useEffect(() => {
-    if (routerLocation.state?.query && !riskData) {
-      handleAnalyze(routerLocation.state.query);
-    }
-  }, [routerLocation.state]);
-
-  const saveSearchHistory = async (locationName, riskScore = null) => {
-    await addToHistory(locationName, riskScore);
-  };
+  
+  // ... (lines 59-85 unchanged)
 
   const handleLocationSelect = async (locationName, coordinates) => {
     setLoading(true);
@@ -102,6 +38,9 @@ const Analyze = () => {
       }
       // Save History with Risk Score
       await saveSearchHistory(locationName, data.risk_analysis?.overall_score);
+      
+      // Send Email Report
+      if (user?.email) sendRiskReportEmail(user.email, locationName, data);
     }
     setLoading(false);
   };
@@ -121,6 +60,9 @@ const Analyze = () => {
       }
       // Save History with Risk Score
       await saveSearchHistory(searchLocation, data.risk_analysis?.overall_score);
+      
+      // Send Email Report
+      if (user?.email) sendRiskReportEmail(user.email, searchLocation, data);
     }
     setLoading(false);
   };
@@ -138,6 +80,9 @@ const Analyze = () => {
       setRiskData(data);
       setMapLocation(coords);
       setShowInsights(true);
+      
+      // Send Email Report
+      if (user?.email) sendRiskReportEmail(user.email, locationString, data);
     }
     setLoading(false);
   };

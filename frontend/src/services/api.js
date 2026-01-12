@@ -183,6 +183,24 @@ ${locationContext}
       "rating": "Good" | "Moderate" | "Unhealthy" | "Hazardous",
       "pollutants": ["pollutants"]
     },
+
+    "growth_potential": {
+      "score": number (0-100),
+      "outlook": "Positive" | "Neutral" | "Negative",
+      "factors": ["factor"]
+    },
+
+    "environmental_hazards": {
+      "score": number (0-100),
+      "risks": ["Landslide", "Earthquake", "Heatwave"],
+      "details": "description"
+    },
+
+    "neighbourhood": {
+      "score": number (0-100),
+      "vibe": "Family-friendly" | "Busy" | "Quiet",
+      "highlights": ["highlights"]
+    },
     
     "amenities": {
       "score": number (0-100),
@@ -353,11 +371,11 @@ ${locationContext}
       { "year": 2024, "count": number, "change_pct": number }
     ],
     "development_timeline": [
-      { "year": 2020, "events": ["event"] },
-      { "year": 2021, "events": ["event"] },
-      { "year": 2022, "events": ["event"] },
-      { "year": 2023, "events": ["event"] },
-      { "year": 2024, "events": ["event"] }
+      { "year": 2020, "major_events": ["event"] },
+      { "year": 2021, "major_events": ["event"] },
+      { "year": 2022, "major_events": ["event"] },
+      { "year": 2023, "major_events": ["event"] },
+      { "year": 2024, "major_events": ["event"] }
     ]
   },
   
@@ -406,31 +424,23 @@ ${locationContext}
   `.trim();
 
   try {
-    const isProd = import.meta.env.PROD;
-    const url = isProd ? PROXY_URL : '/api/perplexity';
-
-    const headers = { 'Content-Type': 'application/json' };
-
-    if (PERPLEXITY_API_KEY) {
-      headers['Authorization'] = `Bearer ${PERPLEXITY_API_KEY}`;
-    }
-
+    const url = '/api/perplexity';
     console.log(`🌐 Calling Perplexity API [Proxy: ${url}]`);
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'sonar-pro',
         messages: [
           {
             role: 'system',
-            content: '房地产分析专家。严禁markdown。仅输出有效的英文JSON。',
+            content: 'You are a senior real estate analyst. Output strictly valid JSON. Use double quotes for all keys. No markdown. No comments. Be concise.',
           },
-          { role: 'user', content: prompt },
+          { role: 'user', content: prompt + " Ensure the response is complete and not truncated." }
         ],
         temperature: 0.1,
-        max_tokens: 3000,
+        max_tokens: 4000,
       }),
     });
 
@@ -440,14 +450,26 @@ ${locationContext}
       throw new Error(`API request failed: ${response.status} - ${errText}`);
     }
 
+    console.log('✅ Perplexity API Response received');
     const data = await response.json();
-    let content = data.choices[0].message.content;
+    console.log('📦 Raw API data:', data);
+    
+    let content = data.choices?.[0]?.message?.content;
+    console.log('📝 Extracted content:', content);
+
+    if (!content) {
+      console.error('❌ No content in Perplexity response!');
+      throw new Error('No content from Perplexity');
+    }
 
     content = content
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
+    console.log('🧹 Cleaned content:', content.substring(0, 200) + '...');
+    
     const parsedData = JSON.parse(content);
+    console.log('✅ Successfully parsed JSON:', parsedData);
 
     if (locationData) {
       parsedData.location_info = {
@@ -460,10 +482,12 @@ ${locationContext}
     }
 
     await saveCache(cacheKey, 'analysis', parsedData);
+    console.log('🎉 Returning REAL data from Perplexity!');
     return parsedData;
   } catch (error) {
-    console.error('Error analyzing property:', error);
-    console.warn('Returning comprehensive mock data...');
+    console.error('❌ ERROR in analyzePropertyRisk:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.warn('⚠️ Falling back to mock data due to error above');
     return getFallbackData(location, locationData);
   }
 };
@@ -623,142 +647,100 @@ function getFallbackData(location, locationData) {
  * @param {Object} context - Current application context (location, risk data)
  * @returns {Promise<string>} - The AI's response
  */
-export const sendChatMessage = async (messages, context = {}) => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error('API key not configured');
+/**
+ * Send the risk analysis report via email
+ */
+export const sendRiskReportEmail = async (email, location, analysisData) => {
+  try {
+    const response = await fetch('/api/report/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        location,
+        overall_score: analysisData.risk_analysis?.overall_score || 0,
+        summary: JSON.stringify(analysisData.risk_analysis, null, 2),
+        details: analysisData
+      }),
+    });
+    if (!response.ok) throw new Error('Failed to send email');
+    return await response.json();
+  } catch (error) {
+    console.error('Email report failed:', error);
+    return null; // Don't block UI
+  }
+};
 
+export const sendChatMessage = async (messages, context = {}) => {
   const contextString = `
     Current Location Context: ${context.location || 'Not specified'}.
     User Geolocation: ${context.userLocation ? `${context.userLocation.lat}, ${context.userLocation.lng}` : 'Unknown'}.
     Risk Data Available: ${!!context.riskSummary}.
   `;
 
-  // CHATBOT SYSTEM PROMPT (Pure Chinese for Token Optimization)
-  // Intent: "Provide 5 specific suggestions with valid Search URLs. Single Risk Score. Confident Tone."
-  const systemPrompt = `你是Terra Truce助手。
+  const systemPrompt = `You are Terra Truce Assistant.
+Goal: Provide concrete real estate advice with specific listings and links.
+Tone: Confident, Direct, Professional.
+Format:
+1. Provide 3-5 specific recommendations if asked for listings.
+2. Use valid links for property sites (MagicBricks, 99acres, Housing.com, Zillow, etc. based on region).
+3. If asked about risk, summarize the key factors briefly.
 
-目标：
-1. **推荐房源**：
-   - 必须提供至少 **5个具体的地块/房产建议**。
-   - 每个建议格式（必须左对齐 / Flush Left）：
-     1. [名称] - [价格]
-     2. [位置]
-     3. • [简短理由]
-     4. **[链接]**: (MUST Use strictly these 3 formats ONLY. Rotate between them / 必须使用这3种格式):
-       - **MagicBricks**: \`https://www.magicbricks.com/property-for-sale/residential-real-estate?bedroom=&proptype=Residential-Plot&Locality=[Locality]&cityName=[City]&BudgetMin=5-Lacs&areaUnit=12850\`
-       - **99acres**: \`https://www.99acres.com/search/property/buy/residential-land?keyword=[Locality]%20[City]&preference=S&property_type=3\`
-       - **Housing**: \`https://housing.com/in/buy/[city_lowercase]/plot-[locality_lowercase]\`
-
-2. **风险分析**：
-   - 仅提供一个 **综合评分** (0-100)。
-   - 不需要细分。
-
-3. **语气**：
-   - **自信**。绝对禁止使用“我无法提供”、“仅供参考”、“不确定”等模糊词语。
-   - 直接给出建议和分数。
-
-输出格式:
-必须输出符合以下结构的严格JSON（值必须为 **英文**）：
-{
-  "answer": "Here are 5 suggestions...\n\n1. [Name] - [Price]\n[Location]\n• [Reasoning]\n[[Link]](URL)\n\n2. ...",
-  "risk_score": number
-}
-
-关键规则:
-1. **语言**: 所有可见文本（answer）必须为 **英文**。
-2. **拒绝模糊**: 不要说“没有实时数据”。
-3. **链接**: 每个建议必须包含链接。
-
-上下文:
+Context:
 ${contextString.trim()}`;
 
-  const geminiContents = [];
-  let isFirstUserMsg = true;
-
-  messages.forEach((msg) => {
-    let role = msg.role === 'assistant' ? 'model' : 'user';
-    let text = msg.content;
-
-    if (msg.role === 'system') return;
-
-    if (isFirstUserMsg && role === 'user') {
-      text = `${systemPrompt}\n\n用户请求: ${text}`;
-      isFirstUserMsg = false;
-    }
-
-    geminiContents.push({
-      role: role,
-      parts: [{ text: text }],
-    });
-  });
-
-  if (geminiContents.length === 0) {
-    geminiContents.push({ role: 'user', parts: [{ text: systemPrompt + '\n\nHello' }] });
-  }
+  // Prepare messages for Perplexity
+  const apiMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+  ];
 
   const lastMsg = messages[messages.length - 1].content;
-  const cacheKey = normalizeKey(`gemini_${lastMsg}_${context.location || ''}`);
+  // Cache key based on last message
+  const normalizeKey = (str) => str.toLowerCase().trim().replace(/\s+/g, ' ');
+  const cacheKey = normalizeKey(`chat_${lastMsg}_${context.location || ''}`);
 
-  const cached = await checkCache(cacheKey, 'chat');
-  if (cached) {
-    return cached + ' ⚡';
-  }
+  // Check cache (optional, implementation depends on cache system availability)
+  // const cached = await checkCache(cacheKey, 'chat');
+  // if (cached) return cached + ' ⚡';
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: geminiContents,
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 5000,
-            responseMimeType: 'application/json',
-          },
-        }),
-      }
-    );
+    const url = '/api/perplexity';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar-pro',
+        messages: apiMessages,
+        temperature: 0.1,
+        max_tokens: 3000,
+      }),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini API Error: ${errText}`);
+      throw new Error(`Perplexity API Error: ${errText}`);
     }
 
     const data = await response.json();
-    let content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!content) throw new Error('No content generated by Gemini');
-
+    let content = data.choices?.[0]?.message?.content;
+    
+    if (!content) throw new Error('No content generated by Perplexity');
+    
+    // Attempt JSON parse if the prompt requested JSON (legacy support), else return text
     try {
-      const parsed = JSON.parse(content);
-
-      let displayString = parsed.answer || '';
-
-      if (parsed.risk_score !== undefined) {
-        displayString += `\n\n**Overall Risk Score:** ${parsed.risk_score}/100`;
-      }
-
-      content = displayString;
-    } catch (e) {
-      console.warn('Failed to parse Chatbot JSON, attempting regex extraction', e);
-      // Fallback: Try to extract the "answer" field if JSON is broken/truncated
-      const answerMatch = content.match(/"answer":\s*"((?:[^"\\]|\\.)*)/);
-      if (answerMatch) {
-        try {
-          content = JSON.parse(`"${answerMatch[1]}"`);
-        } catch (parseErr) {
-          content = answerMatch[1]
-            .replace(/\\n/g, '\n')
-            .replace(/\\"/g, '"')
-            .replace(/\\\\/g, '\\');
+        // If content looks like JSON, parse it to extract "answer" field if present
+        if (content.trim().startsWith('{') && content.includes('"answer"')) {
+             const parsed = JSON.parse(content);
+             return parsed.answer || content;
         }
-      }
+    } catch (e) {
+        // Not JSON, logical fallthrough
     }
 
-    await saveCache(cacheKey, 'chat', content);
     return content;
   } catch (error) {
     console.error('Chatbot API Error:', error);

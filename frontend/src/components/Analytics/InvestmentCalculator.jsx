@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   DollarSign,
@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Check,
   X,
+  Wand2,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -22,7 +23,7 @@ import {
 } from 'recharts';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import LocationSearch from '../Search/LocationSearch';
 import { analyzePropertyRisk } from '../../services/api';
 import { usePortfolio } from '../../context/PortfolioContext';
@@ -44,7 +45,7 @@ const InvestmentCalculator = () => {
       if (tz && tz.includes('Kolkata')) return '₹';
       if (tz && tz.includes('London')) return '£';
       if (tz && tz.includes('Europe')) return '€';
-    } catch (e) {
+    } catch {
       return '$';
     }
     return '$';
@@ -61,13 +62,13 @@ const InvestmentCalculator = () => {
     return 3;
   });
   const [interestRate, setInterestRate] = useState(() => {
-     const score = location.state?.riskScore;
-     if (score) {
-       if (score > 70) return 7.5;
-       if (score < 30) return 5.5;
-       return 6.5;
-     }
-     return 6.5; 
+    const score = location.state?.riskScore;
+    if (score) {
+      if (score > 70) return 7.5;
+      if (score < 30) return 5.5;
+      return 6.5;
+    }
+    return 6.5;
   });
   const [projectionYears, setProjectionYears] = useState(5);
   const [analyzing, setAnalyzing] = useState(false);
@@ -93,8 +94,6 @@ const InvestmentCalculator = () => {
     setIsAutoEstimated(true);
     gsap.fromTo('.auto-est-notice', { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
   };
-
-
 
   const handleCurrencyChange = (newCurrency) => {
     const oldCurrency = currency;
@@ -539,14 +538,15 @@ const InvestmentCalculator = () => {
   );
 };
 
-const InputGroup = ({ label, value, onChange, icon: Icon, prefix, suffix }) => (
+// eslint-disable-next-line no-unused-vars
+const InputGroup = ({ label, value, onChange, icon: IconComponent, prefix, suffix }) => (
   <div className="space-y-2 group">
     <label className="text-xs font-bold text-text-secondary ml-1 group-focus-within:text-brand-primary transition-colors">
       {label}
     </label>
     <div className="relative">
       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-brand-primary">
-        <Icon className="h-4 w-4" />
+        <IconComponent className="h-4 w-4" />
       </div>
       <input
         type="number"

@@ -51,7 +51,7 @@ services:
   # Embedder Service (Python)
   embedder:
     build:
-      context: ./services/embedder
+      context: ./ai-services/embedder
       dockerfile: Dockerfile
     container_name: terratruce-embedder
     ports:
@@ -67,7 +67,7 @@ services:
   # XBooster Local LLM Service (Python)
   xbooster:
     build:
-      context: ./services/xbooster
+      context: ./ai-services/xbooster
       dockerfile: Dockerfile
     container_name: terratruce-xbooster
     ports:
@@ -81,7 +81,7 @@ services:
   # Ensembler Service (Node.js)
   ensembler:
     build:
-      context: ./services/ensembler
+      context: ./ai-services/ensembler
       dockerfile: Dockerfile
     container_name: terratruce-ensembler
     ports:
@@ -95,7 +95,7 @@ services:
   # MCP Service (Rust)
   mcp:
     build:
-      context: ./mcp
+      context: ./ai-mcp
       dockerfile: Dockerfile
     container_name: terratruce-mcp
     ports:
@@ -110,7 +110,7 @@ services:
       MCP_PORT: 3001
       MCP_HOST: 0.0.0.0
     env_file:
-      - ./mcp/.env
+      - ./ai-mcp/.env
     depends_on:
       postgres:
         condition: service_healthy

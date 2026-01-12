@@ -1,143 +1,269 @@
-# Tera Truce 🏡✨
-> **AI-Powered Real Estate Risk Intelligence Platform**
+# TerraTruce - Real Estate Risk Intelligence Platform
 
-Tera Truce is a next-generation property intelligence dashboard that leverages Artificial Intelligence to analyze location risks, forecast financial appreciation, and provide legal red-flag checks for real estate assets. It bridges the gap between complex market data and actionable investment insights using a modern, reactive stack.
-
-![Status](https://img.shields.io/badge/Status-Active-success)
-![Framework](https://img.shields.io/badge/Framework-React%2019-blue)
-![Build](https://img.shields.io/badge/Build-Vite%207-purple)
-![Database](https://img.shields.io/badge/Database-Supabase-green)
-
----
-
-## 🏗️ Architecture
-
-Tera Truce is built as a highly optimized **Single Page Application (SPA)**. It prioritizes client-side performance using **Vite** and **React 19**, while offloading complex logic to serverless APIs and AI models.
-
-### Tech Stack Deep Dive
-
-| Component | Technology | Version | Purpose |
-| :--- | :--- | :--- | :--- |
-| **Core** | **React 19** | `^19.2.0` | Latest React features including Concurrent Mode and Server Components readiness. |
-| **Build Tool** | **Vite** | `^7.2.4` | Next-generation frontend tooling for instant HMR and optimized builds. |
-| **Design System** | **Tailwind CSS** | `^3.4.17` | Utility-first CSS framework with a custom glassmorphism theme config. |
-| **Animation** | **GSAP** & **Framer Motion** | `^3.14` / `^12.23` | High-performance timeline animations (GSAP) and layout transitions (Framer). |
-| **Charting** | **Recharts** | `^3.6.0` | Composable React charts for financial data visualization. |
-| **Mapping** | **Google Maps (React)** | `^1.7.1` | Interactive risk maps with custom overlays and markers. |
-| **AI / Logic** | **Gemini AI SDK** | `^0.24.1` | Generative AI for risk explanation and market insights. |
-| **Backend** | **Supabase** | `v2` | Postgres Database, Authentication, and Real-time subscriptions. |
-
----
-
-## 📂 Project Structure
-
-The codebase is organized for scalability, separating UI components from business logic and state.
+## 🏗️ Project Structure
 
 ```
-Tera-Truce/
-├── requirements.txt      # System & API prerequisites
-├── README.md             # This documentation
-└── client/               # Main Application
-    ├── src/
-    │   ├── components/
-    │   │   ├── Analytics/   # Investment Calculator, Financial Charts
-    │   │   ├── Map/         # Google Maps Integration
-    │   │   ├── Onboarding/  # Tutorials & Walkthroughs
-    │   │   └── Layout/      # Dashboard Shell & Navigation
-    │   ├── context/         # React Context (Auth, Theme, Portfolio)
-    │   ├── pages/           # High-level Routes (Analyze, Dashboard)
-    │   ├── services/        # Supabase & AI API wrappers
-    │   └── styles/          # Global styles & Map Themes
-    ├── .env                 # Secrets (ignored by git)
-    └── package.json         # Dependency Manifest
+terratruce/
+├── frontend/          # React frontend (Vite + Tailwind)
+├── backend/           # Rust backend (Axum + PostgreSQL)
+├── ai-mcp/            # AI Model Control Proxy (Rust)
+├── ai-services/       # AI microservices
+│   ├── embedder/      # Text embeddings (Python)
+│   ├── xbooster/      # Local LLM (Python)
+│   └── ensembler/     # Response aggregation (Node.js)
+└── docker-compose.yml # All services orchestration
 ```
 
----
-
-## 🚀 Core Features
-
-### 1. 🛡️ AI Risk Engine
-- **Multi-Factor Analysis**: Aggregates Flood Zones, Crime Rates, Pollution Levels, and Infrastructure Growth data.
-- **Contextual Insights**: Uses **Google Gemini** to process raw data into human-readable risk reports (e.g., "High flood risk due to proximity to riverbed").
-
-### 2. 🧮 Investment Projector
-- **Financial Modeling**: Calculates **ROI**, **Cash-on-Cash Return**, and **Net Operating Income (NOI)**.
-- **Dynamic Charts**: Interactive graphs showing 30-year projections with adjustable variables (Appreciation, Inflation).
-
-### 3. 📊 Smart Dashboard
-- **Portfolio Tracking**: Real-time view of all saved assets with aggregated net worth.
-- **Currency Support**: Auto-detects region (INR/USD/EUR) but allows manual override.
-- **Dark Mode**: Fully responsive, theme-aware UI (System/Light/Dark).
-
-## 🛠️ Setup & Usage
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18 or higher)
-- NPM (v9 or higher)
 
-### Installation
+- Docker & Docker Compose
+- Node.js 18+ (for frontend development)
+- Rust 1.75+ (for backend development)
+- Python 3.11+ (for AI services development)
 
-1.  **Navigate to the Client Directory**:
-    ```bash
-    cd client
-    ```
-    > **Important**: The root of the active code is inside the `client` folder.
+### 1. Clone Repository
 
-2.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
+```bash
+git clone <repository-url>
+cd terratruce
+```
 
-3.  **Environment Configuration**:
-    Create a `.env` file in the `client/` directory. Copy the structure below:
-    ```env
-    # Supabase (Database & Auth)
-    VITE_SUPABASE_URL=https://your-project.supabase.co
-    VITE_SUPABASE_ANON_KEY=your-anon-key
+### 2. Environment Setup
 
-    # Google Cloud (Maps & AI)
-    VITE_GOOGLE_MAPS_API_KEY=your_maps_key
-    VITE_GEMINI_API_KEY=your_gemini_key
-    ```
+```bash
+# Backend
+cp backend/.env.example backend/.env
+# Edit backend/.env with your credentials
 
-4.  **Start Development Server**:
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:5173](http://localhost:5173) in your browser.
+# AI-MCP
+cp ai-mcp/.env.example ai-mcp/.env
+# Edit ai-mcp/.env with API keys
+```
 
-### Available Scripts
+### 3. Start All Services
 
-| Command | Description |
-| :--- | :--- |
-| `npm run dev` | Starts the local dev server with HMR. |
-| `npm run build` | Compiles the app for production (dist folder). |
-| `npm run preview` | Locally preview the production build. |
-| `npm run lint` | Runs ESLint to check for code quality issues. |
+```bash
+docker-compose up -d
+```
+
+### 4. Run Migrations
+
+```bash
+cd backend
+sqlx migrate run
+```
+
+### 5. Access Application
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:3000
+- **AI-MCP**: http://localhost:3001
+- **Embedder**: http://localhost:8001
+- **XBooster**: http://localhost:8002
+- **Ensembler**: http://localhost:3002
+
+## 📦 Components
+
+### Frontend (React)
+
+- **Location**: `frontend/`
+- **Tech**: React, Vite, Tailwind CSS, Leaflet
+- **Port**: 5173
+
+### Backend (Rust)
+
+- **Location**: `backend/`
+- **Tech**: Axum, SQLx, PostgreSQL
+- **Port**: 3000
+- **Features**: API routes, database, email reports
+
+### AI-MCP (Model Control Proxy)
+
+- **Location**: `ai-mcp/`
+- **Tech**: Rust, Axum, Redis
+- **Port**: 3001
+- **Features**:
+  - Decision engine
+  - Two-tier caching
+  - Provider orchestration
+  - Cost tracking
+
+### AI Services
+
+- **Embedder** (Port 8001): Text embeddings using sentence-transformers
+- **XBooster** (Port 8002): Local LLM fallback
+- **Ensembler** (Port 3002): Response aggregation
+
+## 🗄️ Database
+
+### PostgreSQL Tables
+
+- `search_history` - Property searches
+- `cache_entries` - MCP cache
+- `provider_metrics` - AI usage tracking
+- `email_reports` - Email logs
+- `mcp_request_logs` - Request monitoring
+- `mcp_protection_rules` - Protection config
+- `mcp_auto_corrections` - Auto-fix logs
+- `api_quotas` - Usage limits
+- `security_audit_log` - Security events
+
+### Redis
+
+- Short-term cache (1 hour TTL)
+- Rate limiting
+- Session management
+
+### Qdrant
+
+- Vector database for semantic search
+- Embedding storage
+
+## 🔧 Development
+
+### Frontend Development
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Backend Development
+
+```bash
+cd backend
+cargo run
+```
+
+### AI-MCP Development
+
+```bash
+cd ai-mcp
+cargo run
+```
+
+### AI Services Development
+
+```bash
+# Embedder
+cd ai-services/embedder
+pip install -r requirements.txt
+python main.py
+
+# XBooster
+cd ai-services/xbooster
+pip install -r requirements.txt
+python main.py
+
+# Ensembler
+cd ai-services/ensembler
+npm install
+npm start
+```
+
+## 📊 API Endpoints
+
+### Backend
+
+- `GET /health` - Health check
+- `POST /api/search` - Create search
+- `GET /api/search` - Get search history
+- `POST /api/chat` - AI chat
+- `POST /api/report/email` - Send email report
+
+### AI-MCP
+
+- `POST /api/mcp/analyze` - Property analysis (direct)
+- `POST /api/protected/analyze` - Protected analysis (with auto-correction)
+- `GET /api/mcp/metrics` - Provider metrics
+- `GET /api/mcp/model-card` - Model performance
+
+## 🛡️ MCP Protection Features
+
+- ✅ Input validation (3-500 chars)
+- ✅ Auto-correction (whitespace, formatting)
+- ✅ Rate limiting
+- ✅ Cost tracking
+- ✅ Security auditing
+
+## 📧 Email Service
+
+Configured with Gmail SMTP:
+
+- Test: `python3 test_email.py`
+- See `EMAIL_TESTING.md` for details
+
+## 🐳 Docker Services
+
+| Service    | Port | Purpose     |
+| ---------- | ---- | ----------- |
+| Frontend   | 5173 | React UI    |
+| Backend    | 3000 | API server  |
+| AI-MCP     | 3001 | Model proxy |
+| Embedder   | 8001 | Embeddings  |
+| XBooster   | 8002 | Local LLM   |
+| Ensembler  | 3002 | Aggregation |
+| PostgreSQL | 5432 | Database    |
+| Redis      | 6379 | Cache       |
+| Qdrant     | 6333 | Vector DB   |
+
+## 🔐 Environment Variables
+
+### Backend (.env)
+
+```env
+DATABASE_URL=postgresql://...
+SMTP_HOST=smtp.gmail.com
+SMTP_USERNAME=your-email
+SMTP_PASSWORD=your-app-password
+```
+
+### AI-MCP (.env)
+
+```env
+PERPLEXITY_API_KEY=...
+GEMINI_API_KEY=...
+OPENAI_API_KEY=...
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
+```
+
+## 📝 Documentation
+
+- `backend/migrations/README.md` - Database migrations
+- `EMAIL_TESTING.md` - Email testing guide
+- `MCP_README.md` - MCP architecture
+- `DEPLOYMENT_SUMMARY.md` - Deployment guide
+
+## 🧪 Testing
+
+```bash
+# Test email service
+python3 test_email.py
+
+# Test AI-MCP
+curl http://localhost:3001/health
+
+# Test protected endpoint
+curl -X POST http://localhost:3000/api/protected/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"location": "San Francisco"}'
+```
+
+## 🚀 Deployment
+
+1. Set environment variables
+2. Run migrations: `cd backend && sqlx migrate run`
+3. Start services: `docker-compose up -d`
+4. Verify: Check all health endpoints
+
+## 📄 License
+
+MIT License
 
 ---
 
-## ❓ Troubleshooting
-
-**Q: The Map is not loading (Gray/Blank box).**
-*   **A**: Check your `.env` file. Ensure `VITE_GOOGLE_MAPS_API_KEY` is set and has "Maps JavaScript API" enabled in Google Cloud Console.
-
-**Q: "ReferenceError" or White Screen.**
-*   **A**: Ensure you are running Node v18+. Delete `node_modules` and run `npm install` again.
-
-**Q: Charts look broken in Dark Mode.**
-*   **A**: Refresh the page. The charts listen to system theme changes. We use CSS variables (`--text-primary`) to adapt colors dynamically.
-
----
-
-## 🤝 Contribution
-
-Contributions are welcome!
-1.  Fork the repository.
-2.  Create a feature branch (`git checkout -b feature/NewFeature`).
-3.  Commit changes (`git commit -m 'Add NewFeature'`).
-4.  Push to branch (`git push origin feature/NewFeature`).
-5.  Open a Pull Request.
-
----
-*Built with ❤️ by the Tera Truce Team.*
+**Built with ❤️ for intelligent real estate analysis**

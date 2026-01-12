@@ -128,7 +128,7 @@ const VisualMapCard = () => (
       <div className="relative z-10">
         <span className="relative flex h-8 w-8">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-brand-primary dark:to-brand-primary opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-8 w-8 bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-brand-primary dark:to-brand-primary border-4 border-white dark:border-slate-800 flex items-center justify-center shadow-lg">
+          <span className="relative inline-flex rounded-full h-8 w-8 bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-brand-primary dark:to-brand-primary border-4 border-white dark:border-slate-800 items-center justify-center shadow-lg">
             <Map className="h-3 w-3 text-white" />
           </span>
         </span>
@@ -145,14 +145,12 @@ const VisualMapCard = () => (
 const Home = () => {
   const containerRef = useRef(null);
   const heroRef = useRef(null);
-  const trendingRef = useRef(null);
   const navigate = useNavigate();
   const { analysisState } = useAnalysis();
   const { user } = useAuth();
 
   const [userState, setUserState] = useState(null);
   const [hotSearches, setHotSearches] = useState(SYNTHETIC_HOT_SEARCHES['Default']);
-  const [recentSearches, setRecentSearches] = useState([]);
 
   // 1. Detect User State for Personalization
   useEffect(() => {
@@ -179,12 +177,11 @@ const Home = () => {
   useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
-        const { data } = await supabase
+        await supabase
           .from('search_history')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(4);
-        if (data) setRecentSearches(data);
       };
       fetchHistory();
     }
@@ -312,10 +309,10 @@ const Home = () => {
   );
 };
 
-const FeatureCard = ({ icon: Icon, title, desc, id }) => (
+const FeatureCard = ({ icon: IconComponent, title, desc, id }) => (
   <div id={id} className="premium-card p-8 group">
     <div className="h-14 w-14 bg-brand-primary/5 rounded-2xl flex items-center justify-center mb-6 text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-colors duration-300">
-      <Icon className="h-7 w-7" />
+      <IconComponent className="h-7 w-7" />
     </div>
     <h3 className="text-xl font-bold mb-3 text-text-primary">{title}</h3>
     <p className="text-sm text-text-secondary leading-relaxed">{desc}</p>
