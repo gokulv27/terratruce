@@ -5,6 +5,7 @@ mod api_proxy;
 mod test_utils;
 pub mod report;
 mod mcp_proxy;
+mod mcp_protection;
 
 use axum::{
     routing::{get, post},
@@ -29,10 +30,13 @@ pub fn create_router(pool: Pool<Postgres>) -> Router {
         .route("/api/report/email", post(report::email_report))
         .route("/api/test-email", get(test_utils::test_email_handler))
         .route("/api/test-gemini", get(test_utils::test_gemini_handler))
-        // MCP routes
+        // MCP routes (direct)
         .route("/api/mcp/analyze", post(mcp_proxy::mcp_analyze))
         .route("/api/mcp/metrics", get(mcp_proxy::mcp_metrics))
         .route("/api/mcp/model-card", get(mcp_proxy::mcp_model_card))
+        // Protected MCP routes (with auto-correction and validation)
+        .route("/api/protected/analyze", post(mcp_protection::protected_analyze))
+        .route("/api/protected/health", get(mcp_protection::protection_health))
         .layer(CorsLayer::permissive())
         .with_state(state)
 }
