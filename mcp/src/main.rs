@@ -2,12 +2,16 @@ mod decision_engine;
 mod providers;
 mod cache;
 mod models;
+mod email;
 
 use axum::{
     routing::{get, post},
     Router,
+    extract::Query,
+    Json,
 };
 use dotenvy::dotenv;
+use serde::Deserialize;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 use std::net::SocketAddr;
@@ -18,12 +22,14 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use crate::cache::CacheManager;
 use crate::decision_engine::DecisionEngine;
 use crate::providers::ProviderRegistry;
+use crate::email::EmailService;
 
 #[derive(Clone)]
 pub struct AppState {
     pub cache: Arc<CacheManager>,
     pub decision_engine: Arc<DecisionEngine>,
     pub provider_registry: Arc<ProviderRegistry>,
+    pub email_service: Option<Arc<EmailService>>,
 }
 
 #[tokio::main]
@@ -61,6 +67,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("✅ Connected to Redis");
 
+    // Initialize email service
+    let email_service = match EmailService::new() {
+        Ok(service) => {
+            if service.is_configured() {
+                tracing::info!("✅ Email service configured");
+                Some(Arc::new(service))
+            } else {
+                tracing::warn!("⚠️  Email service not configured (missing credentials)");
+                None
+            }
+        }
+        Err(e) => {
+            tracing::warn!("⚠️  Email service initialization failed: {}", e);
+            None
+        }
+    };
+
     // Initialize components
     let cache = Arc::new(CacheManager::new(redis_conn, pool.clone()));
     let provider_registry = Arc::new(ProviderRegistry::new());
@@ -73,6 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cache,
         decision_engine,
         provider_registry,
+        email_service,
     };
 
     // Build router
@@ -82,6 +106,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/mcp/chat", post(decision_engine::chat_handler))
         .route("/api/mcp/metrics", get(metrics_handler))
         .route("/api/mcp/model-card", get(model_card_handler))
+        .route("/api/mcp/email/test", get(test_email_handler))
+        .route("/api/mcp/email/health", get(email_health_handler))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -116,4 +142,47 @@ async fn model_card_handler(
 ) -> axum::Json<serde_json::Value> {
     let model_card = state.provider_registry.get_model_card().await;
     axum::Json(model_card)
+}
+
+#[derive(Deserialize)]
+struct EmailTestQuery {
+    to: Option<String>,
+}
+
+async fn test_email_handler(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    Query(params): Query<EmailTestQuery>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let email_service = state.email_service
+        .ok_or(axum::http::StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let to_email = params.to.unwrap_or_else(|| 
+        env::var("SMTP_USERNAME").unwrap_or_else(|_| "test@example.com".to_string())
+    );
+
+    match email_service.send_test_email(&to_email).await {
+        Ok(_) => Ok(Json(serde_json::json!({
+            "success": true,
+            "message": format!("Test email sent to {}", to_email)
+        }))),
+        Err(e) => {
+            tracing::error!("Failed to send test email: {}", e);
+            Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+async fn email_health_handler(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> Json<serde_json::Value> {
+    let configured = state.email_service.is_some();
+    
+    Json(serde_json::json!({
+        "email_service": {
+            "configured": configured,
+            "smtp_host": env::var("SMTP_HOST").unwrap_or_else(|_| "not_set".to_string()),
+            "smtp_port": env::var("SMTP_PORT").unwrap_or_else(|_| "not_set".to_string()),
+            "from_email": env::var("SMTP_FROM_EMAIL").unwrap_or_else(|_| "not_set".to_string()),
+        }
+    }))
 }
