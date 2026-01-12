@@ -25,8 +25,8 @@ pub struct ChatMessage {
     pub content: String,
 }
 
-/// POST /api/details - Proxy for AI chat completions
-pub async fn get_details(
+/// POST /api/chat - Proxy for AI chat completions
+pub async fn chat_handler(
     State(_state): State<AppState>,
     Json(payload): Json<ChatRequest>,
 ) -> impl IntoResponse {

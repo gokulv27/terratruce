@@ -12,6 +12,7 @@ use super::search::AppState;
 // ============ Google Maps Proxy ============
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct MapsConfigRequest {
     // Empty - just returns the API key
 }
@@ -348,5 +349,81 @@ pub async fn gemini_generate(
                 }))
             ).into_response()
         }
+    }
+}
+
+// ============ Perplexity AI Proxy ============
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PerplexityRequest {
+    pub model: String,
+    pub messages: Vec<PerplexityMessage>,
+    pub temperature: Option<f32>,
+    pub max_tokens: Option<u32>,
+    pub top_p: Option<f32>,
+    pub return_citations: Option<bool>,
+    pub stream: Option<bool>,
+    pub presence_penalty: Option<f32>,
+    pub frequency_penalty: Option<f32>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PerplexityMessage {
+    pub role: String,
+    pub content: String,
+}
+
+/// POST /api/perplexity - Proxy for Perplexity AI
+pub async fn perplexity_chat(
+    State(_state): State<AppState>,
+    Json(payload): Json<PerplexityRequest>,
+) -> impl IntoResponse {
+    let api_key = match env::var("PERPLEXITY_API_KEY") {
+        Ok(key) => {
+            if key.is_empty() {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "PERPLEXITY_API_KEY is empty in .env"}))
+                ).into_response();
+            }
+            key
+        },
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "PERPLEXITY_API_KEY not found in .env"}))
+            ).into_response();
+        }
+    };
+
+    let client = reqwest::Client::new();
+    let url = "https://api.perplexity.ai/chat/completions";
+
+    tracing::info!("Proxying Perplexity AI request (Model: {})", payload.model);
+
+    match client
+        .post(url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            let status = response.status();
+            if !status.is_success() {
+                let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                tracing::error!("Perplexity API error ({}): {}", status, error_text);
+                return (
+                    StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                    Json(json!({"error": "Perplexity API Error", "details": error_text}))
+                ).into_response();
+            }
+            match response.json::<Value>().await {
+                Ok(data) => (StatusCode::OK, Json(data)).into_response(),
+                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Failed to parse Perplexity JSON", "details": e.to_string()}))).into_response()
+            }
+        }
+        Err(e) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Failed to reach Perplexity API", "details": e.to_string()}))).into_response()
     }
 }
