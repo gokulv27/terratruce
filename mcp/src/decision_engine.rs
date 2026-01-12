@@ -34,10 +34,13 @@ impl DecisionEngine {
         let cache_key = self.cache.generate_key(&req.location, &params_value);
 
         // 2. Check cache (Redis → PostgreSQL)
-        let mut cache_manager = Arc::try_unwrap(self.cache.clone())
-            .unwrap_or_else(|arc| (*arc).clone());
-        
-        if let Some(cached_value) = cache_manager.get(&cache_key).await? {
+        if let Some(cached_value) = {
+            let mut cache_clone = CacheManager::new(
+                self.cache.redis.clone(),
+                self.cache.postgres.clone()
+            );
+            cache_clone.get(&cache_key).await?
+        } {
             tracing::info!("🎯 Cache HIT - returning cached result");
             return Ok(EnsembledResponse {
                 final_content: cached_value,
@@ -106,7 +109,11 @@ impl DecisionEngine {
             .parse::<i64>()
             .unwrap_or(86400);
 
-        cache_manager.set(&cache_key, &ensembled.final_content, ttl_short, ttl_long).await?;
+        let mut cache_store = CacheManager::new(
+            self.cache.redis.clone(),
+            self.cache.postgres.clone()
+        );
+        cache_store.set(&cache_key, &ensembled.final_content, ttl_short, ttl_long).await?;
 
         let elapsed = start_time.elapsed();
         tracing::info!("⏱️  Total execution time: {:?}", elapsed);
@@ -205,8 +212,8 @@ pub async fn analyze_handler(
 
 /// HTTP handler for chat endpoint
 pub async fn chat_handler(
-    State(state): State<AppState>,
-    Json(req): Json<ChatRequest>,
+    State(_state): State<AppState>,
+    Json(_req): Json<ChatRequest>,
 ) -> Result<Json<Value>, StatusCode> {
     // TODO: Implement chat logic
     Ok(Json(json!({"message": "Chat endpoint not yet implemented"})))

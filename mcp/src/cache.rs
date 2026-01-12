@@ -7,8 +7,8 @@ use std::time::Duration;
 use crate::models::CacheEntry;
 
 pub struct CacheManager {
-    redis: ConnectionManager,
-    postgres: PgPool,
+    pub redis: ConnectionManager,
+    pub postgres: PgPool,
 }
 
 impl CacheManager {
@@ -45,7 +45,7 @@ impl CacheManager {
         use redis::AsyncCommands;
         
         let data = serde_json::to_string(value)?;
-        self.redis.set_ex(key, data, ttl_seconds).await?;
+        self.redis.set_ex::<_, _, ()>(key, data, ttl_seconds).await?;
         
         tracing::debug!("💾 Stored in Redis: {} (TTL: {}s)", key, ttl_seconds);
         Ok(())

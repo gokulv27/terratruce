@@ -26,7 +26,7 @@ pub struct ProviderRegistry {
     metrics: Arc<RwLock<HashMap<String, ProviderMetrics>>>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct ProviderMetrics {
     pub total_requests: u64,
     pub successful_requests: u64,
