@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+
+import { useNavigate } from 'react-router-dom';
 import MapView from '../components/Map/MapView';
 import LocationSearch from '../components/Search/LocationSearch';
 import RiskGauge from '../components/Insights/RiskGauge';
@@ -11,14 +11,83 @@ import FacilitiesDisplay from '../components/Insights/FacilitiesDisplay';
 import AnalysisLoader from '../components/UI/AnalysisLoader';
 import ComparisonView from '../components/Analytics/ComparisonView';
 import InsightsPanel from '../components/Insights/InsightsPanel';
-import { analyzePropertyRisk, extractAddressFromOCR, sendRiskReportEmail } from '../services/api';
-
-// ... (lines 15-56 unchanged)
+import {
+  analyzePropertyRisk,
+  extractAddressFromOCR,
+  sendRiskReportEmail,
+  searchPropertyListings,
+} from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useComparison } from '../context/ComparisonContext';
+import { useAnalysis } from '../context/AnalysisContext';
+import {
+  Calculator,
+  ArrowRightLeft,
+  FileText,
+  Loader2,
+  PlusCircle,
+  Sparkles,
+  AlertTriangle,
+  MapIcon,
+  Maximize2,
+  ArrowRight,
+} from 'lucide-react';
+import Tesseract from 'tesseract.js';
+import { supabase } from '../services/supabase';
 
 const Analyze = () => {
   const { user } = useAuth();
-  
-  // ... (lines 59-85 unchanged)
+  const { addToCompare, comparedProperties, toggleCompareVisibility } = useComparison();
+  const { history, addToHistory, triggerChat } = useAnalysis();
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  // State
+  const [location, setLocation] = useState('');
+  const [mapLocation, setMapLocation] = useState({ lat: 40.7128, lng: -74.006 });
+  const [riskData, setRiskData] = useState(null);
+  const [propertyListings, setPropertyListings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+
+  // Property filter state
+  const [minBudget, setMinBudget] = useState('');
+  const [maxBudget, setMaxBudget] = useState('');
+  const [propertyType, setPropertyType] = useState('land');
+
+  // Save search to history
+  const saveSearchHistory = async (locationName, riskScore = null) => {
+    if (!user) return;
+    try {
+      await supabase.from('search_history').insert({
+        user_id: user.id,
+        location_name: locationName,
+        risk_score: riskScore,
+      });
+      addToHistory({ location_name: locationName, risk_score: riskScore });
+    } catch (error) {
+      console.error('Failed to save search history:', error);
+    }
+  };
+
+  // OCR Text Extraction
+  const extractTextFromFile = async (file) => {
+    const {
+      data: { text },
+    } = await Tesseract.recognize(file, 'eng', {
+      logger: (m) => console.log(m),
+    });
+    return text;
+  };
+
+  // PII Redaction
+  const redactPII = (text) => {
+    return text
+      .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN REDACTED]')
+      .replace(/\b\d{10,16}\b/g, '[CARD REDACTED]')
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL REDACTED]');
+  };
 
   const handleLocationSelect = async (locationName, coordinates) => {
     setLoading(true);
@@ -29,7 +98,12 @@ const Analyze = () => {
       setMapLocation(coordinates);
     }
 
-    const data = await analyzePropertyRisk(locationName);
+    // Fetch both risk analysis and property listings in parallel
+    const [data, listingsData] = await Promise.all([
+      analyzePropertyRisk(locationName),
+      searchPropertyListings(locationName, propertyType, 10, minBudget, maxBudget),
+    ]);
+
     if (data) {
       setRiskData(data);
       setShowInsights(true);
@@ -38,10 +112,16 @@ const Analyze = () => {
       }
       // Save History with Risk Score
       await saveSearchHistory(locationName, data.risk_analysis?.overall_score);
-      
+
       // Send Email Report
       if (user?.email) sendRiskReportEmail(user.email, locationName, data);
     }
+
+    // Set property listings
+    if (listingsData?.listings) {
+      setPropertyListings(listingsData.listings);
+    }
+
     setLoading(false);
   };
 
@@ -60,7 +140,7 @@ const Analyze = () => {
       }
       // Save History with Risk Score
       await saveSearchHistory(searchLocation, data.risk_analysis?.overall_score);
-      
+
       // Send Email Report
       if (user?.email) sendRiskReportEmail(user.email, searchLocation, data);
     }
@@ -80,7 +160,7 @@ const Analyze = () => {
       setRiskData(data);
       setMapLocation(coords);
       setShowInsights(true);
-      
+
       // Send Email Report
       if (user?.email) sendRiskReportEmail(user.email, locationString, data);
     }
@@ -117,10 +197,6 @@ const Analyze = () => {
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleAnalyze();
-  };
-
   // Prepare markers: Property, Hospitals, Schools, Listings
   const getMarkers = () => {
     if (!riskData) return [];
@@ -131,9 +207,9 @@ const Analyze = () => {
     markers.push({
       position: mapLocation,
       color:
-        riskData.risk_analysis.overall_score > 70
+        riskData.risk_analysis?.overall_score > 70
           ? '#EF4444'
-          : riskData.risk_analysis.overall_score > 40
+          : riskData.risk_analysis?.overall_score > 40
             ? '#FACC15'
             : '#22C55E',
     });
@@ -305,6 +381,128 @@ const Analyze = () => {
                   before finalizing any property transaction.
                 </p>
               </div>
+
+              {/* Property Listings Section */}
+              {propertyListings.length > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                      <MapIcon className="h-5 w-5 text-brand-primary" />
+                      Available Properties in {location}
+                    </h3>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="mb-4 p-4 bg-surface-elevated rounded-xl border border-border">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-text-secondary mb-1 block">
+                          Property Type
+                        </label>
+                        <select
+                          value={propertyType}
+                          onChange={(e) => setPropertyType(e.target.value)}
+                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-text-primary focus:border-brand-primary focus:outline-none"
+                        >
+                          <option value="land">Land</option>
+                          <option value="house">House</option>
+                          <option value="apartment">Apartment</option>
+                          <option value="commercial">Commercial</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-text-secondary mb-1 block">
+                          Min Budget
+                        </label>
+                        <input
+                          type="text"
+                          value={minBudget}
+                          onChange={(e) => setMinBudget(e.target.value)}
+                          placeholder="e.g., ₹50L, $100K"
+                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-brand-primary focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-text-secondary mb-1 block">
+                          Max Budget
+                        </label>
+                        <input
+                          type="text"
+                          value={maxBudget}
+                          onChange={(e) => setMaxBudget(e.target.value)}
+                          placeholder="e.g., ₹2Cr, $500K"
+                          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-brand-primary focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          onClick={() => handleLocationSelect(location)}
+                          className="w-full px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-bold hover:bg-brand-primary/90 transition-all"
+                        >
+                          Apply Filters
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                    {propertyListings.map((listing, index) => (
+                      <div
+                        key={index}
+                        className="bg-surface-elevated border border-border rounded-xl overflow-hidden hover:border-brand-primary/40 transition-all group"
+                      >
+                        <div className="flex gap-3 p-3">
+                          {/* Image */}
+                          <div className="w-24 h-24 shrink-0 bg-gradient-to-br from-brand-primary/10 to-brand-secondary/10 rounded-lg overflow-hidden">
+                            {listing.image_url ? (
+                              <img
+                                src={listing.image_url}
+                                alt={listing.title}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <MapIcon className="h-8 w-8 text-text-secondary/30" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-sm text-text-primary truncate mb-1">
+                              {listing.title}
+                            </h4>
+                            <p className="text-xs text-text-secondary mb-2 line-clamp-2">
+                              {listing.description}
+                            </p>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="font-bold text-green-600">{listing.price}</span>
+                              {listing.area && (
+                                <span className="text-text-secondary">{listing.area}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-xs text-text-secondary">{listing.source}</span>
+                              <a
+                                href={listing.listing_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-auto text-xs font-bold text-brand-primary hover:underline flex items-center gap-1"
+                              >
+                                View Listing
+                                <ArrowRight className="h-3 w-3" />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

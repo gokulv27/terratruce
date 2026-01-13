@@ -158,9 +158,19 @@ const Home = () => {
       if (analysisState?.userLocation) {
         // Determine region based on state
         // This is a mock; in real app we'd map states to keys
-        if (analysisState.userLocation.includes('Tamil Nadu')) {
+        // Check if userLocation is a string (legacy) or object (coordinates)
+        if (typeof analysisState.userLocation === 'string' && analysisState.userLocation.includes('Tamil Nadu')) {
           setHotSearches(SYNTHETIC_HOT_SEARCHES['Tamil Nadu']);
           setUserState('Tamil Nadu');
+        } else if (
+          typeof analysisState.userLocation === 'object' &&
+          analysisState.userLocation.lat &&
+          analysisState.userLocation.lng
+        ) {
+          // TODO: Reverse geocode here to get state if needed.
+          // For now, default to India as we have explicit coords but no state name
+          setHotSearches(SYNTHETIC_HOT_SEARCHES['India']);
+          setUserState('India');
         } else {
           setHotSearches(SYNTHETIC_HOT_SEARCHES['India']);
           setUserState('India');

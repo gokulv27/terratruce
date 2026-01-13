@@ -6,6 +6,7 @@ mod test_utils;
 pub mod report;
 mod mcp_proxy;
 mod mcp_protection;
+mod property_search;
 
 use axum::{
     routing::{get, post},
@@ -27,6 +28,7 @@ pub fn create_router(pool: Pool<Postgres>) -> Router {
         .route("/api/geocode", get(api_proxy::geocode_address))
         .route("/api/gemini", post(api_proxy::gemini_generate))
         .route("/api/perplexity", post(api_proxy::perplexity_chat))
+        .route("/api/properties/search", post(property_search::search_properties))
         .route("/api/report/email", post(report::email_report))
         .route("/api/test-email", get(test_utils::test_email_handler))
         .route("/api/test-gemini", get(test_utils::test_gemini_handler))

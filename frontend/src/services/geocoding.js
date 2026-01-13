@@ -13,9 +13,7 @@ const PROXY_URL = '/api/geocode';
  */
 export const geocodeAddress = async (address) => {
   try {
-    const response = await fetch(
-      `${PROXY_URL}?q=${encodeURIComponent(address)}&limit=1`
-    );
+    const response = await fetch(`${PROXY_URL}?q=${encodeURIComponent(address)}&limit=1`);
 
     if (!response.ok) {
       throw new Error(`Geocoding failed: ${response.status}`);
@@ -71,9 +69,7 @@ export const getSuggestions = async (query) => {
   if (!query || query.length < 3) return [];
 
   try {
-    const response = await fetch(
-      `${PROXY_URL}?q=${encodeURIComponent(query)}&limit=5`
-    );
+    const response = await fetch(`${PROXY_URL}?q=${encodeURIComponent(query)}&limit=5`);
 
     if (!response.ok) return [];
 
@@ -100,9 +96,7 @@ export const getSuggestions = async (query) => {
  */
 export const reverseGeocode = async (lat, lng) => {
   try {
-    const response = await fetch(
-      `${PROXY_URL}?q=${lat}+${lng}&limit=1`
-    );
+    const response = await fetch(`${PROXY_URL}?q=${lat}+${lng}&limit=1`);
 
     if (!response.ok) {
       throw new Error(`Reverse geocoding failed: ${response.status}`);

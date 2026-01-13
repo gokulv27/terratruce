@@ -3,7 +3,8 @@ import { supabase } from './supabase';
 
 const normalizeKey = (str) => str.toLowerCase().trim().replace(/\s+/g, ' ');
 
-const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
+// Not needed when using proxy
+// const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
 
 /**
  * Comprehensive 10-Point Property Risk Analysis
@@ -30,14 +31,12 @@ export const extractAddressFromOCR = async (text) => {
   `;
 
   try {
-    const isProd = import.meta.env.PROD;
-    // const isProd = true ; // Force proxy usage for testing backend connection
-    const url = isProd ? PROXY_URL : 'https://api.perplexity.ai/chat/completions';
+    // Always use proxy
+    const url = PROXY_URL;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: isProd ? undefined : `Bearer ${PERPLEXITY_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -66,7 +65,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 Hours
 // Helper to generate unique cache keys (combining type + normalized location)
 const getCacheKey = (location, type) => `${type}:${normalizeKey(location)}`;
 
-const checkCache = async (key, type) => {
+const checkCache = async (key) => {
   try {
     const { data, error } = await supabase
       .from('cache_entries')
@@ -649,30 +648,6 @@ function getFallbackData(location, locationData) {
  * @param {Object} context - Current application context (location, risk data)
  * @returns {Promise<string>} - The AI's response
  */
-/**
- * Send the risk analysis report via email
- */
-export const sendRiskReportEmail = async (email, location, analysisData) => {
-  try {
-    const response = await fetch('/api/report/email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        location,
-        overall_score: analysisData.risk_analysis?.overall_score || 0,
-        summary: JSON.stringify(analysisData.risk_analysis, null, 2),
-        details: analysisData,
-      }),
-    });
-    if (!response.ok) throw new Error('Failed to send email');
-    return await response.json();
-  } catch (error) {
-    console.error('Email report failed:', error);
-    return null; // Don't block UI
-  }
-};
-
 export const sendChatMessage = async (messages, context = {}) => {
   const contextString = `
     Current Location Context: ${context.location || 'Not specified'}.
@@ -750,5 +725,74 @@ ${contextString.trim()}`;
   } catch (error) {
     console.error('Chatbot API Error:', error);
     return 'Connection error. Please try again.';
+  }
+};
+
+/**
+ * Send the risk analysis report via email
+ */
+export const sendRiskReportEmail = async (email, location, analysisData) => {
+  try {
+    const response = await fetch('/api/report/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        location,
+        overall_score: analysisData.risk_analysis?.overall_score || 0,
+        summary: JSON.stringify(analysisData.risk_analysis, null, 2),
+        details: analysisData,
+      }),
+    });
+    if (!response.ok) throw new Error('Failed to send email');
+    return await response.json();
+  } catch (error) {
+    console.error('Email report failed:', error);
+    return null; // Don't block UI
+  }
+};
+
+/**
+ * Search for real property listings in a location
+ * Returns top 10 properties with images, prices, and listing URLs
+ */
+export const searchPropertyListings = async (
+  location,
+  propertyType = 'land',
+  maxResults = 10,
+  minBudget = '',
+  maxBudget = ''
+) => {
+  try {
+    console.log(`🔍 Searching for ${propertyType} listings in: ${location}`);
+    
+    const requestBody = {
+      location,
+      property_type: propertyType,
+      max_results: maxResults,
+    };
+
+    // Add budget filters if provided
+    if (minBudget) requestBody.min_budget = minBudget;
+    if (maxBudget) requestBody.max_budget = maxBudget;
+    
+    const response = await fetch('/api/properties/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Property search failed:', error);
+      return { listings: [], total_found: 0, search_location: location };
+    }
+
+    const data = await response.json();
+    console.log(`✅ Found ${data.total_found} property listings`);
+    return data;
+  } catch (error) {
+    console.error('Property search error:', error);
+    return { listings: [], total_found: 0, search_location: location, error: error.message };
   }
 };

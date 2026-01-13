@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import NotFound from './pages/NotFound';
 import Calendar from './pages/Calendar';
+import SearchHistory from './pages/SearchHistory';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import InvestmentCalculator from './components/Analytics/InvestmentCalculator';
 import ErrorBoundary from './components/UI/ErrorBoundary';
@@ -108,6 +109,14 @@ function AppContent() {
                 <div className="h-full overflow-y-auto custom-scrollbar p-6">
                   <Calendar />
                 </div>
+              </MainLayoutWrapper>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <MainLayoutWrapper>
+                <SearchHistory />
               </MainLayoutWrapper>
             }
           />

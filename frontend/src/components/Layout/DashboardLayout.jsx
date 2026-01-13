@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -16,16 +16,18 @@ import {
   Search,
   RefreshCw,
   Calendar as CalendarIcon,
+  History,
 } from 'lucide-react';
-import { supabase } from '../../services/supabase';
+
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 import Tutorial from '../OnboardingFlow/Tutorial';
 import { useAnalysis } from '../../context/AnalysisContext';
 import Chatbot from '../Chat/Chatbot';
 
+// eslint-disable-next-line no-unused-vars
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
   <Link
     to={to}
@@ -116,6 +118,12 @@ const DashboardLayout = ({ children }) => {
             active={location.pathname === '/calendar'}
           />
           <SidebarItem
+            icon={History}
+            label="Search History"
+            to="/history"
+            active={location.pathname === '/history'}
+          />
+          <SidebarItem
             icon={Activity}
             label="Risk Analysis"
             to="/analyze"
@@ -157,7 +165,7 @@ const DashboardLayout = ({ children }) => {
             {history.length > 0 ? (
               <div className="space-y-1.5 px-2">
                 <AnimatePresence mode="popLayout">
-                  {history.map((item, idx) => (
+                  {history.map((item) => (
                     <motion.div
                       key={item.id}
                       initial={{ opacity: 0, x: -10 }}
