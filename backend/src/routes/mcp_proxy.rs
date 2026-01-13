@@ -9,7 +9,7 @@ use std::env;
 
 use super::search::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct McpAnalyzeRequest {
     pub location: String,
     pub analysis_type: Option<String>,

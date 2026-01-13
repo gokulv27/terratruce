@@ -52,13 +52,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             PgPoolOptions::new()
                 .max_connections(1)
                 .acquire_timeout(std::time::Duration::from_secs(1))
-                .connect("postgresql://dummy:dummy@localhost:5432/dummy")
-                .await
-                .unwrap_or_else(|_| {
-                    // This is a last resort - create an unconnected pool
-                    // The routes that need DB will fail gracefully
-                    panic!("Cannot create even a dummy pool - this should not happen")
-                })
+                .connect_lazy("postgresql://dummy:dummy@localhost:5432/dummy")
+                .expect("Failed to create lazy pool")
         }
     };
 
