@@ -16,11 +16,44 @@ export const AnalyzeSatelliteVisionSchema = z.object({
 
 export async function analyzeSatelliteVision(args: z.infer<typeof AnalyzeSatelliteVisionSchema>) {
   const { latitude, longitude, zoom, analysis_type } = args;
-  
+
   // Construct Google Maps Static API URL
   const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!mapsApiKey) {
-    throw new Error('GOOGLE_MAPS_API_KEY not configured');
+
+  // FAIL-SAFE: If Maps Key is missing (User requested to ignore), return mock data
+  if (!mapsApiKey || mapsApiKey.startsWith('your-')) {
+    console.warn('[VisionTool] Maps API Key missing. Returning MOCK data.');
+
+    // Mock Base64 Image (1x1 pixel transparent gif or similar, or just a placeholder text for now)
+    // Actually, let's just return a placeholder message in the raw analysis if we can't get an image.
+    // Or better, skip the image analysis and just ask Gemini to hallucinate based on lat/lng (pure text).
+
+    // Let's ask Gemini to simulate the analysis based on location only
+    const mockPrompt = `The user wants a ${analysis_type} analysis for a property at ${latitude}, ${longitude}, but we don't have a satellite image. 
+    Simulate a plausible analysis for a generic property in this region.
+    Return valid JSON matching the expected format for ${analysis_type}.`;
+
+    const analysisText = await geminiManager.generateText(mockPrompt);
+
+    try {
+      const analysis = JSON.parse(analysisText);
+      return {
+        location: { latitude, longitude },
+        analysis_type,
+        timestamp: new Date().toISOString(),
+        is_mock: true,
+        note: "Satellite imagery unavailable (Maps API missing). Analysis is simulated.",
+        ...analysis
+      };
+    } catch (e) {
+      return {
+        location: { latitude, longitude },
+        analysis_type,
+        timestamp: new Date().toISOString(),
+        is_mock: true,
+        raw_analysis: analysisText
+      };
+    }
   }
 
   const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?` +
@@ -31,13 +64,18 @@ export async function analyzeSatelliteVision(args: z.infer<typeof AnalyzeSatelli
     `&key=${mapsApiKey}`;
 
   // Fetch satellite image
-  const response = await fetch(mapUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch satellite image: ${response.statusText}`);
+  let base64Image: string;
+  try {
+    const response = await fetch(mapUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch satellite image: ${response.statusText}`);
+    }
+    const imageBuffer = await response.arrayBuffer();
+    base64Image = Buffer.from(imageBuffer).toString('base64');
+  } catch (error) {
+    console.error('[VisionTool] Maps fetch failed:', error);
+    throw error;
   }
-
-  const imageBuffer = await response.arrayBuffer();
-  const base64Image = Buffer.from(imageBuffer).toString('base64');
 
   // Construct analysis prompt based on type
   const prompts: Record<string, string> = {
@@ -73,7 +111,7 @@ Return as JSON with relevant fields.`
 
   const prompt = prompts[analysis_type];
 
-  // Use Gemini Vision (always uses backup keys to preserve primary)
+  // Use Gemini Vision
   const analysisText = await geminiManager.analyzeImage(base64Image, prompt, 'image/jpeg');
 
   // Parse JSON response

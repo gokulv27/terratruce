@@ -483,12 +483,13 @@ ${locationContext}
 
     await saveCache(cacheKey, 'analysis', parsedData);
     return parsedData;
+    await saveCache(cacheKey, 'analysis', parsedData);
+    return parsedData;
   } catch (error) {
     console.error('Error analyzing property:', error);
-    // Only use fallback if explicitly desired, but warning user is better often.
-    // For now we keep fallback but log loudly.
-    console.warn('Returning comprehensive mock data due to API failure...');
-    return getFallbackData(location, locationData);
+    // CRITICAL FIX: Do NOT return fallback data for API failures. 
+    // We want to see the real error in the UI.
+    throw error;
   }
 };
 
