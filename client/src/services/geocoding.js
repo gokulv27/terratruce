@@ -71,21 +71,27 @@ export const getSuggestions = async (query) => {
   if (!query || query.length < 3) return [];
 
   try {
-    // Add fuzzy=1 to allow for typos
-    const response = await fetch(
-      `${OPENCAGE_BASE_URL}?q=${encodeURIComponent(query)}&key=${OPENCAGE_API_KEY}&limit=5&no_annotations=1`
-    );
+    const isProd = import.meta.env.PROD;
+    // Use backend proxy to rotate keys and hide them from client
+    const endpoint = '/api/places/autocomplete';
+
+    // In dev, we might need full URL if not proxied, but usually /api is proxied in Vite
+    // Assuming standard /api proxy setup in vite.config.js
+
+    const response = await fetch(`${endpoint}?input=${encodeURIComponent(query)}`);
 
     if (!response.ok) return [];
 
     const data = await response.json();
-    if (!data.results) return [];
+    if (!data.predictions) return [];
 
-    return data.results.map((r) => ({
-      label: r.formatted,
-      components: r.components,
-      geometry: r.geometry,
-      bounds: r.bounds,
+    return data.predictions.map((p) => ({
+      label: p.description,
+      place_id: p.place_id,
+      // Google doesn't return geometry in autocomplete, usually need a second call for details
+      // But passing the place_id allows subsequent detail fetching if needed.
+      // For now, we'll keep the structure compatible.
+      isGooglePlace: true
     }));
   } catch (error) {
     console.error('Suggestion error:', error);

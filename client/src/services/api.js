@@ -503,8 +503,9 @@ ${locationContext}
     return parsedData;
   } catch (error) {
     console.error('Error analyzing property:', error);
-    console.warn('Returning comprehensive mock data...');
-    return getFallbackData(location, locationData);
+    // CRITICAL FIX: Do NOT return fallback data for API failures. 
+    // We want to see the real error in the UI.
+    throw error;
   }
 };
 

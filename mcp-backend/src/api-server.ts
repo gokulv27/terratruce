@@ -8,6 +8,8 @@ import { supabase, isDatabaseAvailable } from './config/database.js';
 import { scheduleSiteVisit } from './tools/scheduleTool.js';
 import { analyzeSatelliteVision } from './tools/visionTools.js';
 import { searchWeb, researchTopic } from './tools/searchTools.js';
+import { mapsManager } from './services/mapsManager.js';
+import axios from 'axios';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -58,7 +60,7 @@ Provide a detailed JSON response with:
 
 Return ONLY valid JSON, no markdown.`;
 
-    const analysis = await geminiManager.generateText(prompt, true);
+    const analysis = await geminiManager.generateText(prompt);
 
     // Parse JSON response
     let parsedData;
@@ -75,6 +77,41 @@ Return ONLY valid JSON, no markdown.`;
     console.error('[API] Error analyzing property:', error);
     const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
     res.status(500).json({ error: errorMessage });
+  }
+});
+
+// Places Autocomplete Endpoint (Proxy with Rotation)
+app.get('/api/places/autocomplete', async (req, res) => {
+  try {
+    const { input } = req.query;
+
+    if (!input || typeof input !== 'string') {
+      return res.status(400).json({ error: 'Input query parameter is required' });
+    }
+
+    // Get rotated key
+    const apiKey = mapsManager.getNextKey();
+
+    // Call Google Places Autocomplete API
+    // Using Place Autocomplete (New) or the standard Places API
+    const response = await axios.get(`https://maps.googleapis.com/maps/api/place/autocomplete/json`, {
+      params: {
+        input,
+        key: apiKey,
+        types: 'geocode', // Focus on geocoding results (addresses, cities)
+      }
+    });
+
+    if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
+      console.error(`[API] Places API Error (${response.data.status}):`, response.data.error_message);
+      throw new Error(`Google Places API Error: ${response.data.status}`);
+    }
+
+    res.json(response.data);
+
+  } catch (error: any) {
+    console.error('[API] Places Autocomplete error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
   }
 });
 
@@ -127,8 +164,7 @@ Context: ${contextString}`;
     }
 
     const response = await geminiManager.generateText(
-      geminiMessages.map((m) => m.parts[0].text).join('\n\n'),
-      true
+      geminiMessages.map((m) => m.parts[0].text).join('\n\n')
     );
 
     // Try to parse JSON response
@@ -216,7 +252,7 @@ app.get('/api/visits', async (req, res) => {
     console.log(`[API] Fetching visits for: ${user_email || 'ALL'}`);
 
     let query = supabase!.from('geo_core.visits').select('*').order('visit_time', { ascending: true });
-    
+
     // Fallback logic for table name if needed, but for list we try primary first
     // If we really wanted robust fallback we'd need a helper, but assuming geo_core exists from previous tool usage
     if (user_email) {
@@ -226,16 +262,16 @@ app.get('/api/visits', async (req, res) => {
     const { data, error } = await query;
 
     if (error) {
-       // Try fallback to public 'visits'
-       if (error.code === '42P01') {
-           console.warn('[API] geo_core.visits not found, trying public.visits');
-           let fallbackQuery = supabase!.from('visits').select('*').order('visit_time', { ascending: true });
-           if (user_email) fallbackQuery = fallbackQuery.eq('user_email', user_email);
-           const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-           if (fallbackError) throw fallbackError;
-           return res.json({ success: true, data: fallbackData });
-       }
-       throw error;
+      // Try fallback to public 'visits'
+      if (error.code === '42P01') {
+        console.warn('[API] geo_core.visits not found, trying public.visits');
+        let fallbackQuery = supabase!.from('visits').select('*').order('visit_time', { ascending: true });
+        if (user_email) fallbackQuery = fallbackQuery.eq('user_email', user_email);
+        const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+        if (fallbackError) throw fallbackError;
+        return res.json({ success: true, data: fallbackData });
+      }
+      throw error;
     }
 
     res.json({ success: true, data });
@@ -265,16 +301,16 @@ app.put('/api/visits/:id', async (req, res) => {
       .select();
 
     if (error) {
-        if (error.code === '42P01') {
-            const { data: fallbackData, error: fallbackError } = await supabase!
-                .from('visits')
-                .update(updates)
-                .eq('id', id)
-                .select();
-            if (fallbackError) throw fallbackError;
-            return res.json({ success: true, data: fallbackData });
-        }
-        throw error;
+      if (error.code === '42P01') {
+        const { data: fallbackData, error: fallbackError } = await supabase!
+          .from('visits')
+          .update(updates)
+          .eq('id', id)
+          .select();
+        if (fallbackError) throw fallbackError;
+        return res.json({ success: true, data: fallbackData });
+      }
+      throw error;
     }
 
     res.json({ success: true, data });
@@ -297,15 +333,15 @@ app.delete('/api/visits/:id', async (req, res) => {
       .eq('id', id);
 
     if (error) {
-        if (error.code === '42P01') {
-             const { error: fallbackError } = await supabase!
-                .from('visits')
-                .delete()
-                .eq('id', id);
-             if (fallbackError) throw fallbackError;
-             return res.json({ success: true, message: 'Visit cancelled (fallback)' });
-        }
-        throw error;
+      if (error.code === '42P01') {
+        const { error: fallbackError } = await supabase!
+          .from('visits')
+          .delete()
+          .eq('id', id);
+        if (fallbackError) throw fallbackError;
+        return res.json({ success: true, message: 'Visit cancelled (fallback)' });
+      }
+      throw error;
     }
 
     res.json({ success: true, message: 'Visit cancelled' });

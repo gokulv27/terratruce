@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { geminiManager } from '../services/geminiManager.js';
+import { mapsManager } from '../services/mapsManager.js';
 
 // =====================================================
 // TOOL: Analyze Satellite Vision
@@ -16,12 +17,9 @@ export const AnalyzeSatelliteVisionSchema = z.object({
 
 export async function analyzeSatelliteVision(args: z.infer<typeof AnalyzeSatelliteVisionSchema>) {
   const { latitude, longitude, zoom, analysis_type } = args;
-  
+
   // Construct Google Maps Static API URL
-  const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!mapsApiKey) {
-    throw new Error('GOOGLE_MAPS_API_KEY not configured');
-  }
+  const mapsApiKey = mapsManager.getNextKey();
 
   const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?` +
     `center=${latitude},${longitude}` +
